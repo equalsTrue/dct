@@ -1,0 +1,535 @@
+<?xml version="1.0" encoding="utf-8"?>
+<configuration>
+    <springProperty scope="context" name="podName" source="k8s.pod.name"/>
+
+    <appender name="consoleLog" class="ch.qos.logback.core.ConsoleAppender">
+        <layout class="ch.qos.logback.classic.PatternLayout">
+            <pattern>%d{yyyy/MM/dd-HH:mm} [%thread] %-5level %logger- %msg%n</pattern>
+        </layout>
+    </appender>
+    <!--定义日志文件的存储地址 勿在 LogBack 的配置中使用相对路径-->
+    <property name="LOG_PATH" value="/pdata1/dachuan-manager"/>
+    <appender name="fileInfoLog" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <filter class="ch.qos.logback.classic.filter.LevelFilter">
+            <level>INFO</level>
+            <!--<onMatch>DENY</onMatch>-->
+            <!--<onMismatch>ACCEPT</onMismatch>-->
+        </filter>
+        <encoder>
+            <pattern>%d{yyyy/MM/dd-HH:mm} [%thread] %-5level %logger- %msg%n</pattern>
+        </encoder>
+        <!--滚动策略-->
+        <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+            <!--路径-->
+            <fileNamePattern>${LOG_PATH}/log.%d.log</fileNamePattern>
+            <MaxHistory>1</MaxHistory>
+            <!--给定日志文件大小，超过指定的大小就新建一个日志文件-->
+            <cleanHistoryOnStart>true</cleanHistoryOnStart>
+        </rollingPolicy>
+    </appender>
+
+    <appender name="fileErrorLog" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <filter class="ch.qos.logback.classic.filter.ThresholdFilter">
+            <level>ERROR</level>
+        </filter>
+        <encoder>
+            <pattern>%d{yyyy/MM/dd-HH:mm} [%thread] %-5level %logger- %msg%n</pattern>
+        </encoder>
+        <!--滚动策略-->
+        <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+            <!--路径-->
+            <fileNamePattern>${LOG_PATH}/error.%d.log</fileNamePattern>
+            <MaxHistory>3</MaxHistory>
+            <!--给定日志文件大小，超过指定的大小就新建一个日志文件-->
+            <cleanHistoryOnStart>true</cleanHistoryOnStart>
+        </rollingPolicy>
+    </appender>
+
+    <!--新版版本格式-->
+    <appender name="serverReportAppenderNew" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <!--SizeAndTimeBasedRollingPolicy滚动类按照大小和日期两个规则生成-->
+        <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+            <!-- daily rollover ，每小时钟生成一份日志文件-->
+            <fileNamePattern>${LOG_PATH}/server/log.%d{yyyy-MM-dd}.log</fileNamePattern>
+            <!--<fileNamePattern>${LOG_HOME}/kmLevelLog/Log.%d{yyyy-MM-dd-HH}.%i.log</fileNamePattern>-->
+            <!--         <fileNamePattern>${LOG_HOME}/sunriseSunsetLog/Log.%d{yyyy-MM-dd_HH}.%i.log</fileNamePattern>-->
+            <!--设置保存10天 一天24个文件，一小时生成一个-->
+            <MaxHistory>3</MaxHistory>
+            <!--给定日志文件大小，超过指定的大小就新建一个日志文件-->
+            <cleanHistoryOnStart>true</cleanHistoryOnStart>
+        </rollingPolicy>
+        <encoder class="ch.qos.logback.classic.encoder.PatternLayoutEncoder">
+            <!--格式化输出：%d表示日期，%thread表示线程名，%-5level：级别从左显示5个字符宽度%msg：日志消息，%n是换行符-->
+            <pattern>%msg%n</pattern>
+        </encoder>
+    </appender>
+
+    <!-- additivity属性为false，表示此logger的打印信息不再向上级传递(注：该值默认为true，logger的日志信息会依次向上级传递，最高级logger为root，如果不加则至少打印2次，本身一次，root一次)-->
+    <logger name="dctServerReportLogNew" additivity="false" level="INFO">
+        <appender-ref ref="serverReportAppenderNew"/>
+    </logger>
+
+
+    <appender name="adsReportAppenderNew" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <!--SizeAndTimeBasedRollingPolicy滚动类按照大小和日期两个规则生成-->
+        <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+            <!-- daily rollover ，每小时钟生成一份日志文件-->
+            <fileNamePattern>${LOG_PATH}/ads/log.%d{yyyy-MM-dd}.log</fileNamePattern>
+            <!--<fileNamePattern>${LOG_HOME}/kmLevelLog/Log.%d{yyyy-MM-dd-HH}.%i.log</fileNamePattern>-->
+            <!--         <fileNamePattern>${LOG_HOME}/sunriseSunsetLog/Log.%d{yyyy-MM-dd_HH}.%i.log</fileNamePattern>-->
+            <!--设置保存10天 一天24个文件，一小时生成一个-->
+            <MaxHistory>3</MaxHistory>
+            <!--给定日志文件大小，超过指定的大小就新建一个日志文件-->
+            <cleanHistoryOnStart>true</cleanHistoryOnStart>
+        </rollingPolicy>
+        <encoder class="ch.qos.logback.classic.encoder.PatternLayoutEncoder">
+            <!--格式化输出：%d表示日期，%thread表示线程名，%-5level：级别从左显示5个字符宽度%msg：日志消息，%n是换行符-->
+            <pattern>%msg%n</pattern>
+        </encoder>
+    </appender>
+
+    <!-- additivity属性为false，表示此logger的打印信息不再向上级传递(注：该值默认为true，logger的日志信息会依次向上级传递，最高级logger为root，如果不加则至少打印2次，本身一次，root一次)-->
+    <logger name="dctAdsReportLogNew" additivity="false" level="INFO">
+        <appender-ref ref="adsReportAppenderNew"/>
+    </logger>
+
+    <!-- advalue 打点 -->
+    <appender name="adValueAppender" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <!--SizeAndTimeBasedRollingPolicy滚动类按照大小和日期两个规则生成-->
+        <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+            <!-- daily rollover ，每小时钟生成一份日志文件-->
+            <fileNamePattern>${LOG_PATH}/ad/ad_value/log.%d{yyyy-MM-dd}.log</fileNamePattern>
+            <!--<fileNamePattern>${LOG_HOME}/kmLevelLog/Log.%d{yyyy-MM-dd-HH}.%i.log</fileNamePattern>-->
+            <!--         <fileNamePattern>${LOG_HOME}/sunriseSunsetLog/Log.%d{yyyy-MM-dd_HH}.%i.log</fileNamePattern>-->
+            <!--设置保存10天 一天24个文件，一小时生成一个-->
+            <MaxHistory>3</MaxHistory>
+            <!--给定日志文件大小，超过指定的大小就新建一个日志文件-->
+            <cleanHistoryOnStart>true</cleanHistoryOnStart>
+        </rollingPolicy>
+        <encoder class="ch.qos.logback.classic.encoder.PatternLayoutEncoder">
+            <!--格式化输出：%d表示日期，%thread表示线程名，%-5level：级别从左显示5个字符宽度%msg：日志消息，%n是换行符-->
+            <pattern>%msg%n</pattern>
+        </encoder>
+    </appender>
+
+    <!-- additivity属性为false，表示此logger的打印信息不再向上级传递(注：该值默认为true，logger的日志信息会依次向上级传递，最高级logger为root，如果不加则至少打印2次，本身一次，root一次)-->
+    <logger name="adValueReport" additivity="false" level="INFO">
+        <appender-ref ref="adValueAppender"/>
+    </logger>
+
+    <!--拉取服务器无效用户日志-->
+    <appender name="validUserAppender" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <!--SizeAndTimeBasedRollingPolicy滚动类按照大小和日期两个规则生成-->
+        <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+            <!-- daily rollover ，每小时钟生成一份日志文件-->
+            <fileNamePattern>${LOG_PATH}/invalid_user/log.%d{yyyy-MM-dd}.log</fileNamePattern>
+            <!--<fileNamePattern>${LOG_HOME}/kmLevelLog/Log.%d{yyyy-MM-dd-HH}.%i.log</fileNamePattern>-->
+            <!--         <fileNamePattern>${LOG_HOME}/sunriseSunsetLog/Log.%d{yyyy-MM-dd_HH}.%i.log</fileNamePattern>-->
+            <!--设置保存10天 一天24个文件，一小时生成一个-->
+            <MaxHistory>3</MaxHistory>
+            <!--给定日志文件大小，超过指定的大小就新建一个日志文件-->
+            <cleanHistoryOnStart>true</cleanHistoryOnStart>
+        </rollingPolicy>
+        <encoder class="ch.qos.logback.classic.encoder.PatternLayoutEncoder">
+            <!--格式化输出：%d表示日期，%thread表示线程名，%-5level：级别从左显示5个字符宽度%msg：日志消息，%n是换行符-->
+            <pattern>%msg%n</pattern>
+        </encoder>
+    </appender>
+
+    <!-- additivity属性为false，表示此logger的打印信息不再向上级传递(注：该值默认为true，logger的日志信息会依次向上级传递，最高级logger为root，如果不加则至少打印2次，本身一次，root一次)-->
+    <logger name="validUserLog" additivity="false" level="INFO">
+        <appender-ref ref="validUserAppender"/>
+    </logger>
+
+
+    <!--拉取服务器无效用户日志-->
+    <appender name="serverMonitorAppender" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <!--SizeAndTimeBasedRollingPolicy滚动类按照大小和日期两个规则生成-->
+        <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+            <!-- daily rollover ，每小时钟生成一份日志文件-->
+            <fileNamePattern>${LOG_PATH}/server_monitor/log.%d{yyyy-MM-dd}.log</fileNamePattern>
+            <!--<fileNamePattern>${LOG_HOME}/kmLevelLog/Log.%d{yyyy-MM-dd-HH}.%i.log</fileNamePattern>-->
+            <!--         <fileNamePattern>${LOG_HOME}/sunriseSunsetLog/Log.%d{yyyy-MM-dd_HH}.%i.log</fileNamePattern>-->
+            <!--设置保存10天 一天24个文件，一小时生成一个-->
+            <MaxHistory>3</MaxHistory>
+            <!--给定日志文件大小，超过指定的大小就新建一个日志文件-->
+            <cleanHistoryOnStart>true</cleanHistoryOnStart>
+        </rollingPolicy>
+        <encoder class="ch.qos.logback.classic.encoder.PatternLayoutEncoder">
+            <!--格式化输出：%d表示日期，%thread表示线程名，%-5level：级别从左显示5个字符宽度%msg：日志消息，%n是换行符-->
+            <pattern>%msg%n</pattern>
+        </encoder>
+    </appender>
+
+    <!-- additivity属性为false，表示此logger的打印信息不再向上级传递(注：该值默认为true，logger的日志信息会依次向上级传递，最高级logger为root，如果不加则至少打印2次，本身一次，root一次)-->
+    <logger name="serverMonitorLog" additivity="false" level="INFO">
+        <appender-ref ref="serverMonitorAppender"/>
+    </logger>
+    <!--todo V7-->
+    <!-- ads 打点 -->
+    <appender name="adsReportAppenderV7" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <!--SizeAndTimeBasedRollingPolicy滚动类按照大小和日期两个规则生成-->
+        <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+            <!-- daily rollover ，每小时钟生成一份日志文件-->
+            <fileNamePattern>${LOG_PATH}/v7/ads/log.%d{yyyy-MM-dd}.log</fileNamePattern>
+            <!--<fileNamePattern>${LOG_HOME}/kmLevelLog/Log.%d{yyyy-MM-dd-HH}.%i.log</fileNamePattern>-->
+            <!--         <fileNamePattern>${LOG_HOME}/sunriseSunsetLog/Log.%d{yyyy-MM-dd_HH}.%i.log</fileNamePattern>-->
+            <!--设置保存10天 一天24个文件，一小时生成一个-->
+            <MaxHistory>3</MaxHistory>
+            <!--给定日志文件大小，超过指定的大小就新建一个日志文件-->
+            <cleanHistoryOnStart>true</cleanHistoryOnStart>
+        </rollingPolicy>
+        <encoder class="ch.qos.logback.classic.encoder.PatternLayoutEncoder">
+            <!--格式化输出：%d表示日期，%thread表示线程名，%-5level：级别从左显示5个字符宽度%msg：日志消息，%n是换行符-->
+            <pattern>%msg%n</pattern>
+        </encoder>
+    </appender>
+
+    <!-- additivity属性为false，表示此logger的打印信息不再向上级传递(注：该值默认为true，logger的日志信息会依次向上级传递，最高级logger为root，如果不加则至少打印2次，本身一次，root一次)-->
+    <logger name="dctAdsReportV7Log" additivity="false" level="INFO">
+        <appender-ref ref="adsReportAppenderV7"/>
+    </logger>
+    <!-- api 打点 -->
+    <appender name="apiReportAppenderV7" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <!--SizeAndTimeBasedRollingPolicy滚动类按照大小和日期两个规则生成-->
+        <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+            <!-- daily rollover ，每小时钟生成一份日志文件-->
+            <fileNamePattern>${LOG_PATH}/v7/api/log.%d{yyyy-MM-dd}.log</fileNamePattern>
+            <!--<fileNamePattern>${LOG_HOME}/kmLevelLog/Log.%d{yyyy-MM-dd-HH}.%i.log</fileNamePattern>-->
+            <!--         <fileNamePattern>${LOG_HOME}/sunriseSunsetLog/Log.%d{yyyy-MM-dd_HH}.%i.log</fileNamePattern>-->
+            <!--设置保存10天 一天24个文件，一小时生成一个-->
+            <MaxHistory>3</MaxHistory>
+            <!--给定日志文件大小，超过指定的大小就新建一个日志文件-->
+            <cleanHistoryOnStart>true</cleanHistoryOnStart>
+        </rollingPolicy>
+        <encoder class="ch.qos.logback.classic.encoder.PatternLayoutEncoder">
+            <!--格式化输出：%d表示日期，%thread表示线程名，%-5level：级别从左显示5个字符宽度%msg：日志消息，%n是换行符-->
+            <pattern>%msg%n</pattern>
+        </encoder>
+    </appender>
+    <!-- additivity属性为false，表示此logger的打印信息不再向上级传递(注：该值默认为true，logger的日志信息会依次向上级传递，最高级logger为root，如果不加则至少打印2次，本身一次，root一次)-->
+    <logger name="dctApiV7ReportLog" additivity="false" level="INFO">
+        <appender-ref ref="apiReportAppenderV7"/>
+    </logger>
+    <!-- page 打点 -->
+    <appender name="pageReportAppenderV7" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <!--SizeAndTimeBasedRollingPolicy滚动类按照大小和日期两个规则生成-->
+        <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+            <!-- daily rollover ，每小时钟生成一份日志文件-->
+            <fileNamePattern>${LOG_PATH}/v7/page/log.%d{yyyy-MM-dd}.log</fileNamePattern>
+            <!--<fileNamePattern>${LOG_HOME}/kmLevelLog/Log.%d{yyyy-MM-dd-HH}.%i.log</fileNamePattern>-->
+            <!--         <fileNamePattern>${LOG_HOME}/sunriseSunsetLog/Log.%d{yyyy-MM-dd_HH}.%i.log</fileNamePattern>-->
+            <!--设置保存10天 一天24个文件，一小时生成一个-->
+            <MaxHistory>3</MaxHistory>
+            <!--给定日志文件大小，超过指定的大小就新建一个日志文件-->
+            <cleanHistoryOnStart>true</cleanHistoryOnStart>
+        </rollingPolicy>
+        <encoder class="ch.qos.logback.classic.encoder.PatternLayoutEncoder">
+            <!--格式化输出：%d表示日期，%thread表示线程名，%-5level：级别从左显示5个字符宽度%msg：日志消息，%n是换行符-->
+            <pattern>%msg%n</pattern>
+        </encoder>
+    </appender>
+    <!-- additivity属性为false，表示此logger的打印信息不再向上级传递(注：该值默认为true，logger的日志信息会依次向上级传递，最高级logger为root，如果不加则至少打印2次，本身一次，root一次)-->
+    <logger name="dctPageV7ReportLog" additivity="false" level="INFO">
+        <appender-ref ref="pageReportAppenderV7"/>
+    </logger>
+    <!-- page new user 打点 -->
+    <appender name="pageNewUserReportAppenderV7" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <!--SizeAndTimeBasedRollingPolicy滚动类按照大小和日期两个规则生成-->
+        <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+            <!-- daily rollover ，每小时钟生成一份日志文件-->
+            <fileNamePattern>${LOG_PATH}/v7/page_new_user/log.%d{yyyy-MM-dd}.log</fileNamePattern>
+            <!--<fileNamePattern>${LOG_HOME}/kmLevelLog/Log.%d{yyyy-MM-dd-HH}.%i.log</fileNamePattern>-->
+            <!--         <fileNamePattern>${LOG_HOME}/sunriseSunsetLog/Log.%d{yyyy-MM-dd_HH}.%i.log</fileNamePattern>-->
+            <!--设置保存10天 一天24个文件，一小时生成一个-->
+            <MaxHistory>3</MaxHistory>
+            <!--给定日志文件大小，超过指定的大小就新建一个日志文件-->
+            <cleanHistoryOnStart>true</cleanHistoryOnStart>
+        </rollingPolicy>
+        <encoder class="ch.qos.logback.classic.encoder.PatternLayoutEncoder">
+            <!--格式化输出：%d表示日期，%thread表示线程名，%-5level：级别从左显示5个字符宽度%msg：日志消息，%n是换行符-->
+            <pattern>%msg%n</pattern>
+        </encoder>
+    </appender>
+    <!-- additivity属性为false，表示此logger的打印信息不再向上级传递(注：该值默认为true，logger的日志信息会依次向上级传递，最高级logger为root，如果不加则至少打印2次，本身一次，root一次)-->
+    <logger name="dctPageNewUserV7ReportLog" additivity="false" level="INFO">
+        <appender-ref ref="pageNewUserReportAppenderV7"/>
+    </logger>
+    <!-- server 打点 -->
+    <appender name="serverReportAppenderV7" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <!--SizeAndTimeBasedRollingPolicy滚动类按照大小和日期两个规则生成-->
+        <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+            <!-- daily rollover ，每小时钟生成一份日志文件-->
+            <fileNamePattern>${LOG_PATH}/v7/server/log.%d{yyyy-MM-dd}.log</fileNamePattern>
+            <!--<fileNamePattern>${LOG_HOME}/kmLevelLog/Log.%d{yyyy-MM-dd-HH}.%i.log</fileNamePattern>-->
+            <!--         <fileNamePattern>${LOG_HOME}/sunriseSunsetLog/Log.%d{yyyy-MM-dd_HH}.%i.log</fileNamePattern>-->
+            <!--设置保存10天 一天24个文件，一小时生成一个-->
+            <MaxHistory>3</MaxHistory>
+            <!--给定日志文件大小，超过指定的大小就新建一个日志文件-->
+            <cleanHistoryOnStart>true</cleanHistoryOnStart>
+        </rollingPolicy>
+        <encoder class="ch.qos.logback.classic.encoder.PatternLayoutEncoder">
+            <!--格式化输出：%d表示日期，%thread表示线程名，%-5level：级别从左显示5个字符宽度%msg：日志消息，%n是换行符-->
+            <pattern>%msg%n</pattern>
+        </encoder>
+    </appender>
+    <!-- additivity属性为false，表示此logger的打印信息不再向上级传递(注：该值默认为true，logger的日志信息会依次向上级传递，最高级logger为root，如果不加则至少打印2次，本身一次，root一次)-->
+    <logger name="dctServerV7ReportLog" additivity="false" level="INFO">
+        <appender-ref ref="serverReportAppenderV7"/>
+    </logger>
+
+
+    <!-- adJust user Event参数打点 -->
+    <appender name="adjustUserEventAppender" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <!--SizeAndTimeBasedRollingPolicy滚动类按照大小和日期两个规则生成-->
+        <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+            <!-- daily rollover ，每小时钟生成一份日志文件-->
+            <fileNamePattern>${LOG_PATH}/adjust/user_event/log.%d{yyyy-MM-dd}.log</fileNamePattern>
+            <!--<fileNamePattern>${LOG_HOME}/kmLevelLog/Log.%d{yyyy-MM-dd-HH}.%i.log</fileNamePattern>-->
+            <!--         <fileNamePattern>${LOG_HOME}/sunriseSunsetLog/Log.%d{yyyy-MM-dd_HH}.%i.log</fileNamePattern>-->
+            <!--设置保存10天 一天24个文件，一小时生成一个-->
+            <MaxHistory>5</MaxHistory>
+            <!--给定日志文件大小，超过指定的大小就新建一个日志文件-->
+            <cleanHistoryOnStart>true</cleanHistoryOnStart>
+        </rollingPolicy>
+        <encoder class="ch.qos.logback.classic.encoder.PatternLayoutEncoder">
+            <!--格式化输出：%d表示日期，%thread表示线程名，%-5level：级别从左显示5个字符宽度%msg：日志消息，%n是换行符-->
+            <pattern>%msg%n</pattern>
+        </encoder>
+    </appender>
+    <!-- additivity属性为false，表示此logger的打印信息不再向上级传递(注：该值默认为true，logger的日志信息会依次向上级传递，最高级logger为root，如果不加则至少打印2次，本身一次，root一次)-->
+    <logger name="adjustUserEventLog" additivity="false" level="INFO">
+        <appender-ref ref="adjustUserEventAppender"/>
+    </logger>
+
+
+    <!-- referrer 打点 -->
+    <appender name="referrerApiReportAppenderV7" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <!--SizeAndTimeBasedRollingPolicy滚动类按照大小和日期两个规则生成-->
+        <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+            <!-- daily rollover ，每小时钟生成一份日志文件-->
+            <fileNamePattern>${LOG_PATH}/v7/referrer_api/log.%d{yyyy-MM-dd}.log</fileNamePattern>
+            <!--<fileNamePattern>${LOG_HOME}/kmLevelLog/Log.%d{yyyy-MM-dd-HH}.%i.log</fileNamePattern>-->
+            <!--         <fileNamePattern>${LOG_HOME}/sunriseSunsetLog/Log.%d{yyyy-MM-dd_HH}.%i.log</fileNamePattern>-->
+            <!--设置保存10天 一天24个文件，一小时生成一个-->
+            <MaxHistory>3</MaxHistory>
+            <!--给定日志文件大小，超过指定的大小就新建一个日志文件-->
+            <cleanHistoryOnStart>true</cleanHistoryOnStart>
+        </rollingPolicy>
+        <encoder class="ch.qos.logback.classic.encoder.PatternLayoutEncoder">
+            <!--格式化输出：%d表示日期，%thread表示线程名，%-5level：级别从左显示5个字符宽度%msg：日志消息，%n是换行符-->
+            <pattern>%msg%n</pattern>
+        </encoder>
+    </appender>
+    <!-- additivity属性为false，表示此logger的打印信息不再向上级传递(注：该值默认为true，logger的日志信息会依次向上级传递，最高级logger为root，如果不加则至少打印2次，本身一次，root一次)-->
+    <logger name="dctReferrerApiV7ReportLog" additivity="false" level="INFO">
+        <appender-ref ref="referrerApiReportAppenderV7"/>
+    </logger>
+
+    <appender name="refererReportAppenderV7" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <!--SizeAndTimeBasedRollingPolicy滚动类按照大小和日期两个规则生成-->
+        <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+            <!-- daily rollover ，每小时钟生成一份日志文件-->
+            <fileNamePattern>${LOG_PATH}/v7/referer/log.%d{yyyy-MM-dd}.log</fileNamePattern>
+            <!--<fileNamePattern>${LOG_HOME}/kmLevelLog/Log.%d{yyyy-MM-dd-HH}.%i.log</fileNamePattern>-->
+            <!--         <fileNamePattern>${LOG_HOME}/sunriseSunsetLog/Log.%d{yyyy-MM-dd_HH}.%i.log</fileNamePattern>-->
+            <!--设置保存10天 一天24个文件，一小时生成一个-->
+            <MaxHistory>3</MaxHistory>
+            <!--给定日志文件大小，超过指定的大小就新建一个日志文件-->
+            <cleanHistoryOnStart>true</cleanHistoryOnStart>
+        </rollingPolicy>
+        <encoder class="ch.qos.logback.classic.encoder.PatternLayoutEncoder">
+            <!--格式化输出：%d表示日期，%thread表示线程名，%-5level：级别从左显示5个字符宽度%msg：日志消息，%n是换行符-->
+            <pattern>%msg%n</pattern>
+        </encoder>
+    </appender>
+
+    <!-- additivity属性为false，表示此logger的打印信息不再向上级传递(注：该值默认为true，logger的日志信息会依次向上级传递，最高级logger为root，如果不加则至少打印2次，本身一次，root一次)-->
+    <logger name="dctRefererReportV7Log" additivity="false" level="INFO">
+        <appender-ref ref="refererReportAppenderV7"/>
+    </logger>
+
+
+
+
+
+
+
+
+
+    <!-- adJust user Event 2 参数打点 -->
+    <appender name="adjustUserEventAppender2" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <!--SizeAndTimeBasedRollingPolicy滚动类按照大小和日期两个规则生成-->
+        <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+            <!-- daily rollover ，每小时钟生成一份日志文件-->
+            <fileNamePattern>${LOG_PATH}/adjust/user_event_2/log.%d{yyyy-MM-dd}.log</fileNamePattern>
+            <!--<fileNamePattern>${LOG_HOME}/kmLevelLog/Log.%d{yyyy-MM-dd-HH}.%i.log</fileNamePattern>-->
+            <!--         <fileNamePattern>${LOG_HOME}/sunriseSunsetLog/Log.%d{yyyy-MM-dd_HH}.%i.log</fileNamePattern>-->
+            <!--设置保存10天 一天24个文件，一小时生成一个-->
+            <MaxHistory>3</MaxHistory>
+            <!--给定日志文件大小，超过指定的大小就新建一个日志文件-->
+            <cleanHistoryOnStart>true</cleanHistoryOnStart>
+        </rollingPolicy>
+        <encoder class="ch.qos.logback.classic.encoder.PatternLayoutEncoder">
+            <!--格式化输出：%d表示日期，%thread表示线程名，%-5level：级别从左显示5个字符宽度%msg：日志消息，%n是换行符-->
+            <pattern>%msg%n</pattern>
+        </encoder>
+    </appender>
+    <!-- additivity属性为false，表示此logger的打印信息不再向上级传递(注：该值默认为true，logger的日志信息会依次向上级传递，最高级logger为root，如果不加则至少打印2次，本身一次，root一次)-->
+    <logger name="adjustUserEventLog2" additivity="false" level="INFO">
+        <appender-ref ref="adjustUserEventAppender2"/>
+    </logger>
+
+
+    <!-- adJust 安装打点 -->
+<!--    <appender name="adjustInstallAppender" class="ch.qos.logback.core.rolling.RollingFileAppender">-->
+<!--        &lt;!&ndash;SizeAndTimeBasedRollingPolicy滚动类按照大小和日期两个规则生成&ndash;&gt;-->
+<!--        <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">-->
+<!--            &lt;!&ndash; daily rollover ，每小时钟生成一份日志文件&ndash;&gt;-->
+<!--            <fileNamePattern>${LOG_PATH}/adjust/install/log.%d{yyyy-MM-dd}.log</fileNamePattern>-->
+<!--            &lt;!&ndash;<fileNamePattern>${LOG_HOME}/kmLevelLog/Log.%d{yyyy-MM-dd-HH}.%i.log</fileNamePattern>&ndash;&gt;-->
+<!--            &lt;!&ndash;         <fileNamePattern>${LOG_HOME}/sunriseSunsetLog/Log.%d{yyyy-MM-dd_HH}.%i.log</fileNamePattern>&ndash;&gt;-->
+<!--            &lt;!&ndash;设置保存10天 一天24个文件，一小时生成一个&ndash;&gt;-->
+<!--            <MaxHistory>30</MaxHistory>-->
+<!--            &lt;!&ndash;给定日志文件大小，超过指定的大小就新建一个日志文件&ndash;&gt;-->
+<!--            <cleanHistoryOnStart>true</cleanHistoryOnStart>-->
+<!--        </rollingPolicy>-->
+<!--        <encoder class="ch.qos.logback.classic.encoder.PatternLayoutEncoder">-->
+<!--            &lt;!&ndash;格式化输出：%d表示日期，%thread表示线程名，%-5level：级别从左显示5个字符宽度%msg：日志消息，%n是换行符&ndash;&gt;-->
+<!--            <pattern>%msg%n</pattern>-->
+<!--        </encoder>-->
+<!--    </appender>-->
+<!--    &lt;!&ndash; additivity属性为false，表示此logger的打印信息不再向上级传递(注：该值默认为true，logger的日志信息会依次向上级传递，最高级logger为root，如果不加则至少打印2次，本身一次，root一次)&ndash;&gt;-->
+<!--    <logger name="adjustInstallLog" additivity="false" level="INFO">-->
+<!--        <appender-ref ref="adjustInstallAppender"/>-->
+<!--    </logger>-->
+
+
+
+
+<!--    &lt;!&ndash; adJust 卸载打点 &ndash;&gt;-->
+<!--    <appender name="adjustUninstallAppender" class="ch.qos.logback.core.rolling.RollingFileAppender">-->
+<!--        &lt;!&ndash;SizeAndTimeBasedRollingPolicy滚动类按照大小和日期两个规则生成&ndash;&gt;-->
+<!--        <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">-->
+<!--            &lt;!&ndash; daily rollover ，每小时钟生成一份日志文件&ndash;&gt;-->
+<!--            <fileNamePattern>${LOG_PATH}/adjust/uninstall/log.%d{yyyy-MM-dd}.log</fileNamePattern>-->
+<!--            &lt;!&ndash;<fileNamePattern>${LOG_HOME}/kmLevelLog/Log.%d{yyyy-MM-dd-HH}.%i.log</fileNamePattern>&ndash;&gt;-->
+<!--            &lt;!&ndash;         <fileNamePattern>${LOG_HOME}/sunriseSunsetLog/Log.%d{yyyy-MM-dd_HH}.%i.log</fileNamePattern>&ndash;&gt;-->
+<!--            &lt;!&ndash;设置保存10天 一天24个文件，一小时生成一个&ndash;&gt;-->
+<!--            <MaxHistory>30</MaxHistory>-->
+<!--            &lt;!&ndash;给定日志文件大小，超过指定的大小就新建一个日志文件&ndash;&gt;-->
+<!--            <cleanHistoryOnStart>true</cleanHistoryOnStart>-->
+<!--        </rollingPolicy>-->
+<!--        <encoder class="ch.qos.logback.classic.encoder.PatternLayoutEncoder">-->
+<!--            &lt;!&ndash;格式化输出：%d表示日期，%thread表示线程名，%-5level：级别从左显示5个字符宽度%msg：日志消息，%n是换行符&ndash;&gt;-->
+<!--            <pattern>%msg%n</pattern>-->
+<!--        </encoder>-->
+<!--    </appender>-->
+<!--    &lt;!&ndash; additivity属性为false，表示此logger的打印信息不再向上级传递(注：该值默认为true，logger的日志信息会依次向上级传递，最高级logger为root，如果不加则至少打印2次，本身一次，root一次)&ndash;&gt;-->
+<!--    <logger name="adjustUninstallLog" additivity="false" level="INFO">-->
+<!--        <appender-ref ref="adjustUninstallAppender"/>-->
+<!--    </logger>-->
+
+
+
+
+<!--    &lt;!&ndash; adJust 收益打点 &ndash;&gt;-->
+<!--    <appender name="adjustRevenueAppender" class="ch.qos.logback.core.rolling.RollingFileAppender">-->
+<!--        &lt;!&ndash;SizeAndTimeBasedRollingPolicy滚动类按照大小和日期两个规则生成&ndash;&gt;-->
+<!--        <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">-->
+<!--            &lt;!&ndash; daily rollover ，每小时钟生成一份日志文件&ndash;&gt;-->
+<!--            <fileNamePattern>${LOG_PATH}/adjust/revenue/log.%d{yyyy-MM-dd}.log</fileNamePattern>-->
+<!--            &lt;!&ndash;<fileNamePattern>${LOG_HOME}/kmLevelLog/Log.%d{yyyy-MM-dd-HH}.%i.log</fileNamePattern>&ndash;&gt;-->
+<!--            &lt;!&ndash;         <fileNamePattern>${LOG_HOME}/sunriseSunsetLog/Log.%d{yyyy-MM-dd_HH}.%i.log</fileNamePattern>&ndash;&gt;-->
+<!--            &lt;!&ndash;设置保存10天 一天24个文件，一小时生成一个&ndash;&gt;-->
+<!--            <MaxHistory>30</MaxHistory>-->
+<!--            &lt;!&ndash;给定日志文件大小，超过指定的大小就新建一个日志文件&ndash;&gt;-->
+<!--            <cleanHistoryOnStart>true</cleanHistoryOnStart>-->
+<!--        </rollingPolicy>-->
+<!--        <encoder class="ch.qos.logback.classic.encoder.PatternLayoutEncoder">-->
+<!--            &lt;!&ndash;格式化输出：%d表示日期，%thread表示线程名，%-5level：级别从左显示5个字符宽度%msg：日志消息，%n是换行符&ndash;&gt;-->
+<!--            <pattern>%msg%n</pattern>-->
+<!--        </encoder>-->
+<!--    </appender>-->
+<!--    &lt;!&ndash; additivity属性为false，表示此logger的打印信息不再向上级传递(注：该值默认为true，logger的日志信息会依次向上级传递，最高级logger为root，如果不加则至少打印2次，本身一次，root一次)&ndash;&gt;-->
+<!--    <logger name="adjustRevenueLog" additivity="false" level="INFO">-->
+<!--        <appender-ref ref="adjustRevenueAppender"/>-->
+<!--    </logger>-->
+
+
+
+<!--    &lt;!&ndash; adJust 收益打点 &ndash;&gt;-->
+<!--    <appender name="adjustEventAppender" class="ch.qos.logback.core.rolling.RollingFileAppender">-->
+<!--        &lt;!&ndash;SizeAndTimeBasedRollingPolicy滚动类按照大小和日期两个规则生成&ndash;&gt;-->
+<!--        <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">-->
+<!--            &lt;!&ndash; daily rollover ，每小时钟生成一份日志文件&ndash;&gt;-->
+<!--            <fileNamePattern>${LOG_PATH}/adjust/event/log.%d{yyyy-MM-dd}.log</fileNamePattern>-->
+<!--            &lt;!&ndash;<fileNamePattern>${LOG_HOME}/kmLevelLog/Log.%d{yyyy-MM-dd-HH}.%i.log</fileNamePattern>&ndash;&gt;-->
+<!--            &lt;!&ndash;         <fileNamePattern>${LOG_HOME}/sunriseSunsetLog/Log.%d{yyyy-MM-dd_HH}.%i.log</fileNamePattern>&ndash;&gt;-->
+<!--            &lt;!&ndash;设置保存10天 一天24个文件，一小时生成一个&ndash;&gt;-->
+<!--            <MaxHistory>30</MaxHistory>-->
+<!--            &lt;!&ndash;给定日志文件大小，超过指定的大小就新建一个日志文件&ndash;&gt;-->
+<!--            <cleanHistoryOnStart>true</cleanHistoryOnStart>-->
+<!--        </rollingPolicy>-->
+<!--        <encoder class="ch.qos.logback.classic.encoder.PatternLayoutEncoder">-->
+<!--            &lt;!&ndash;格式化输出：%d表示日期，%thread表示线程名，%-5level：级别从左显示5个字符宽度%msg：日志消息，%n是换行符&ndash;&gt;-->
+<!--            <pattern>%msg%n</pattern>-->
+<!--        </encoder>-->
+<!--    </appender>-->
+<!--    &lt;!&ndash; additivity属性为false，表示此logger的打印信息不再向上级传递(注：该值默认为true，logger的日志信息会依次向上级传递，最高级logger为root，如果不加则至少打印2次，本身一次，root一次)&ndash;&gt;-->
+<!--    <logger name="adjustEventLog" additivity="false" level="INFO">-->
+<!--        <appender-ref ref="adjustEventAppender"/>-->
+<!--    </logger>-->
+    <!-- adJust 收益打点 -->
+
+    <!-- serverReplacement -->
+    <appender name="serverReplacementAppender" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <!--SizeAndTimeBasedRollingPolicy滚动类按照大小和日期两个规则生成-->
+        <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+            <!-- daily rollover ，每小时钟生成一份日志文件-->
+            <fileNamePattern>${LOG_PATH}/server_replacement/log.%d{yyyy-MM-dd}.log</fileNamePattern>
+            <!--<fileNamePattern>${LOG_HOME}/kmLevelLog/Log.%d{yyyy-MM-dd-HH}.%i.log</fileNamePattern>-->
+            <!--         <fileNamePattern>${LOG_HOME}/sunriseSunsetLog/Log.%d{yyyy-MM-dd_HH}.%i.log</fileNamePattern>-->
+            <!--设置保存10天 一天24个文件，一小时生成一个-->
+            <MaxHistory>3</MaxHistory>
+            <!--给定日志文件大小，超过指定的大小就新建一个日志文件-->
+            <cleanHistoryOnStart>true</cleanHistoryOnStart>
+        </rollingPolicy>
+        <encoder class="ch.qos.logback.classic.encoder.PatternLayoutEncoder">
+            <!--格式化输出：%d表示日期，%thread表示线程名，%-5level：级别从左显示5个字符宽度%msg：日志消息，%n是换行符-->
+            <pattern>%d{yyyy/MM/dd-HH:mm}%msg%n</pattern>
+        </encoder>
+    </appender>
+
+    <!-- additivity属性为false，表示此logger的打印信息不再向上级传递(注：该值默认为true，logger的日志信息会依次向上级传递，最高级logger为root，如果不加则至少打印2次，本身一次，root一次)-->
+    <logger name="serverReplacementReport" additivity="false" level="INFO">
+        <appender-ref ref="serverReplacementAppender"/>
+    </logger>
+
+    <appender name="ociManagerAppender" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <!--SizeAndTimeBasedRollingPolicy滚动类按照大小和日期两个规则生成-->
+        <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+            <!-- daily rollover ，每小时钟生成一份日志文件-->
+            <fileNamePattern>${LOG_PATH}/oci/log.%d{yyyy-MM-dd}.log</fileNamePattern>
+            <!--<fileNamePattern>${LOG_HOME}/kmLevelLog/Log.%d{yyyy-MM-dd-HH}.%i.log</fileNamePattern>-->
+            <!--         <fileNamePattern>${LOG_HOME}/sunriseSunsetLog/Log.%d{yyyy-MM-dd_HH}.%i.log</fileNamePattern>-->
+            <!--设置保存10天 一天24个文件，一小时生成一个-->
+            <MaxHistory>30</MaxHistory>
+            <!--给定日志文件大小，超过指定的大小就新建一个日志文件-->
+            <cleanHistoryOnStart>true</cleanHistoryOnStart>
+        </rollingPolicy>
+        <encoder class="ch.qos.logback.classic.encoder.PatternLayoutEncoder">
+            <!--格式化输出：%d表示日期，%thread表示线程名，%-5level：级别从左显示5个字符宽度%msg：日志消息，%n是换行符-->
+            <pattern>%msg%n</pattern>
+        </encoder>
+    </appender>
+    <logger name="ociManagerLogger" additivity="false" level="INFO">
+        <appender-ref ref="ociManagerAppender"/>
+    </logger>
+
+    <root level="INFO">
+        <appender-ref ref="consoleLog" />
+        <appender-ref ref="fileInfoLog" />
+        <appender-ref ref="fileErrorLog" />
+    </root>
+</configuration>

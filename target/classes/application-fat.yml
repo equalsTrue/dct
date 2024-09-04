@@ -1,0 +1,126 @@
+server:
+  port: 8080
+spring:
+  data:
+    redis:
+      repositories:
+        enabled: false
+  jpa:
+    hibernate:
+      #      ddl-auto: update
+      naming:
+        physical-strategy: org.hibernate.boot.model.naming.PhysicalNamingStrategyStandardImpl
+  datasource:
+    connectionPropertiesd: druid.stat.mergeSql=true;druid.stat.slowSqlMillis=5000
+    type: com.alibaba.druid.pool.DruidDataSource
+    druid:
+      ck:
+        driver-class-name: ru.yandex.clickhouse.ClickHouseDriver
+        url: jdbc:clickhouse://12.0.2.124:8123/ladder
+        db: ladder
+        socketTimeout: 15000
+        username: default
+        password: 12354
+        connection-timeout: 20000
+        maximum-pool-size: 10
+        jpa:
+          database-platform: org.hibernate.dialect.MySQLDialect
+          show-sql: true
+      #------------druid 多数据源 --------------
+      dct:
+        driver-class-name: com.mysql.cj.jdbc.Driver
+        url: jdbc:mysql://18.138.206.2:3306/dct?useUnicode=true&characterEncoding=utf8&useSSL=false&serverTimezone=UTC&autoReconnect=true&tinyInt1isBit=false
+        username: root
+        password: root
+        initialSize: 10
+        maxActive: 80
+        min-idle: 10
+        maxWait: 60000
+        poolPreparedStatements: true
+        maxPoolPreparedStatementPerConnectionSize: 100
+        testOnBorrow: false
+        testOnReturn: false
+        testWhileIdle: true
+        #      keepAlive: true
+        timeBetweenEvictionRunsMillis: 60000
+        minEvictableIdleTimeMillis: 300000
+        jpa:
+          database-platform: org.hibernate.dialect.MySQL5InnoDBDialect
+          show-sql: true
+
+
+      #    ---------------------druid-common------------------
+      filter: stat
+      web-stat-filter:
+        url-pattern: /*
+        exclusions: "*.js,*.gif,*.jpg,*.bmp,*.png,*.css,*.ico,/druid/*"
+        session-stat-max-count: 1000
+        profile-enable: true
+        enabled: true
+      stat-view-servlet:
+        url-pattern: /druid/*
+        login-username: admin
+        login-password: admin
+  mail:
+    host: smtp.exmail.qq.com
+    port: 465
+    username: aaron.huang@starpavilion-digital.com
+    password: rR8kBT5AitSryo5D
+    properties:
+      mail.smtp:
+        socketFactory.class: javax.net.ssl.SSLSocketFactory
+        auth: true
+        starttls:
+          enable: true
+          required: true
+    default-encoding: UTF-8
+    default-to: develops@starpavilion-digital.com
+  redis:
+    host: 127.0.0.1
+    port: 6379
+    database: 0
+    password:
+    timeout: 6000
+    lettuce:
+      pool:
+        max-active: 10 # 连接池最大连接数（使用负值表示没有限制） 默认 8
+        max-wait: -1 # 连接池最大阻塞等待时间（使用负值表示没有限制） 默认 -1
+        max-idle: 9 # 连接池中的最大空闲连接 默认 8
+        min-idle: 0 # 连接池中的最小空闲连接 默认 0
+      shutdown-timeout: 10000
+encrypt:
+  aes:
+    key2: "tcRWoovpR8PedS2V"
+
+ip2region:
+  external: false
+  index-block-size: 4096
+  total-header-size: 8192
+  location: classpath:ip2region/ip2region.db
+
+sqs:
+  url:
+    destinationName: ladder-server-min-info-dev.fifo
+    adjust: ladder-adjust-dev.fifo
+
+s3:
+  url: "https://s3.us-east-1.amazonaws.com"
+
+file:
+  path: "/Users/david/pdata1/ladder_analytics"
+
+whitehouse:
+  ip: sdfsdfds
+
+oracle:
+  sshPubKeyFilePath: "/feige/ssh-key-2022-12-02.key.pub"
+  comptentId: "ocid1.compartment.oc1..aaaaaaaa6j6wgszhtrocrou4kumuxz6vcar2kpsdk4ud2jsbacpnv7f5wv2q"
+  shapeName: "VM.Standard.E4.Flex"
+  systemName: "Canonical Ubuntu"
+  systemVersion: "22.04"
+  subnetName: "ladder"
+  systemDisplayName: "Canonical-Ubuntu-22.04-2023.10.13-0"
+  imageName: "opendct"
+  serverIp: "http://52.57.153.31"
+  maxRetries: "3"
+  retryDelayMs: "300000"

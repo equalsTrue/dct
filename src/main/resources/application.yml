@@ -1,0 +1,27 @@
+spring:
+  application:
+    name: dachuan-manager
+  profiles:
+    active: dev
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: '*'
+
+jwt:
+  header: Authorization
+  secret: mySecret
+  #token有效期一天
+  expiration: 86400
+  tokenHead: "Bearer "
+
+
+logging:
+  level:
+    com.dct: info
+  config: classpath:logback-${spring.profiles.active}.xml
+
+abb:
+  abb: 12

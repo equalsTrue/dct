@@ -1,0 +1,110 @@
+server:
+  port: 8080
+  tomcat:
+    connection-timeout: 120000
+    max-http-header-size: 20KB
+    accept-count: 5000
+    max-connections: 8000
+    threads:
+      max: 8000
+      min-spare: 500
+    max-swallow-size: 2MB
+    max-http-form-post-sizee: 2MB
+spring:
+  data:
+    redis:
+      repositories:
+        enabled: false
+  jpa:
+    hibernate:
+      #      ddl-auto: update
+      naming:
+        physical-strategy: org.hibernate.boot.model.naming.PhysicalNamingStrategyStandardImpl
+  datasource:
+    connectionPropertiesd: druid.stat.mergeSql=true;druid.stat.slowSqlMillis=5000
+    type: com.alibaba.druid.pool.DruidDataSource
+    druid:
+      ck:
+        driver-class-name: ru.yandex.clickhouse.ClickHouseDriver
+        url: jdbc:clickhouse://12.0.2.124:8123/ladder
+        db: ladder
+        socketTimeout: 15000
+        username: default
+        password: 12354
+        connection-timeout: 20000
+        maximum-pool-size: 10
+        jpa:
+          database-platform: org.hibernate.dialect.MySQLDialect
+          show-sql: true
+      #------------druid 多数据源 --------------
+      dct:
+        driver-class-name: com.mysql.cj.jdbc.Driver
+        url: jdbc:mysql://ssp-de-rds-001.ca4bdwrmvaiv.eu-central-1.rds.amazonaws.com:3306/flydctdb?useUnicode=true&characterEncoding=utf8&useSSL=false&serverTimezone=UTC&autoReconnect=true&tinyInt1isBit=false
+        username: product
+        password: CDNmipLMwe18kLwckMHL
+        initialSize: 10
+        maxActive: 80
+        min-idle: 10
+        maxWait: 60000
+        poolPreparedStatements: true
+        maxPoolPreparedStatementPerConnectionSize: 100
+        testOnBorrow: false
+        testOnReturn: false
+        testWhileIdle: true
+        #      keepAlive: true
+        timeBetweenEvictionRunsMillis: 60000
+        minEvictableIdleTimeMillis: 300000
+        jpa:
+          database-platform: org.hibernate.dialect.MySQL5InnoDBDialect
+          show-sql: true
+
+
+
+      #    ---------------------druid-common------------------
+      filter: stat
+      web-stat-filter:
+        url-pattern: /*
+        exclusions: "*.js,*.gif,*.jpg,*.bmp,*.png,*.css,*.ico,/druid/*"
+        session-stat-max-count: 1000
+        profile-enable: true
+        enabled: true
+      stat-view-servlet:
+        url-pattern: /druid/*
+        login-username: admin
+        login-password: admin
+
+  mail:
+    host: smtp.exmail.qq.com
+    port: 465
+    username: xxxx.com
+    password: xxxx
+    properties:
+      mail.smtp:
+        socketFactory.class: javax.net.ssl.SSLSocketFactory
+        auth: true
+        starttls:
+          enable: true
+          required: true
+    default-encoding: UTF-8
+    default-to: xxxx.com
+  redis:
+    host: localhost
+    port: 6379
+    timeout: 8000
+    password:
+    database: 0
+    lettuce:
+      shutdown-timeout: 30000
+      pool:
+        max-active: 500 # 连接池最大连接数（使用负值表示没有限制） 默认 8
+        max-wait: 8000 # 连接池最大阻塞等待时间（使用负值表示没有限制） 默认 -1
+        max-idle: 50 # 连接池中的最大空闲连接 默认 8
+        min-idle: 0 # 连接池中的最小空闲连接 默认 0
+
+ip2region:
+  external: false
+  index-block-size: 4096
+  total-header-size: 8192
+  location: classpath:ip2region/ip2region.db
+
+
