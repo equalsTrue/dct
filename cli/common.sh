@@ -12,7 +12,7 @@ export PATH
 #clear
 VER=1.0.0
 echo "#############################################################"
-echo "# dachuan-manager Develop Shells"
+echo "# dct Develop Shells"
 echo "#"
 echo "# Author:vic.zhao"
 echo "#"

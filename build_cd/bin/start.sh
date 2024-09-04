@@ -10,7 +10,7 @@ elif [ "${DEPLOY_ENV}" = "prod" ];then
     PORT_STRING=0000
 fi
 jvm_port="6017"
-jar_name="dachuan-manager-0.0.1-SNAPSHOT.jar"
+jar_name="dct-0.0.1-SNAPSHOT.jar"
 
 parameterString=$1
 parameters=(${parameterString//,/ })

@@ -1,6 +1,6 @@
 spring:
   application:
-    name: dachuan-manager
+    name: dct
   profiles:
     active: dev
 

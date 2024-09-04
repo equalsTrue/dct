@@ -10,12 +10,12 @@ mvn clean package -Dmaven.test.skip=true
 echo
 if [ $?  -eq 0 ]; then
     echo $SPLIT_STR
-    echo -e "[$(__green "dachuan-manager打包成功")]"
+    echo -e "[$(__green "dct打包成功")]"
     echo $SPLIT_STR
     echo
 else
     echo $SPLIT_STR
-    echo -e "[$(__red "dachuan-manager打包失败")]"
+    echo -e "[$(__red "dct打包失败")]"
     echo $SPLIT_STR
     echo
     exit 1

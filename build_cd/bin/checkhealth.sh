@@ -14,7 +14,7 @@ function health_check(){
     echo "[health_check] start."
     for ((i=0; i<10; i++))
     do
-        COMPONENT_PID=`ps -ef| grep "dachuan-manager"|grep -v grep|awk '{print $2}'`
+        COMPONENT_PID=`ps -ef| grep "dct"|grep -v grep|awk '{print $2}'`
         if [[ ${COMPONENT_PID} != "" ]] ; then
             echo "COMPONENT_PID=${COMPONENT_PID}"
             echo "RESPONSE_CODE : curl -L -s -X GET http://${HOST_NAME}:${PORT_STRING}/health/examination"
@@ -30,9 +30,9 @@ function health_check(){
             return 1
         fi
         if [[ $i -lt 9 ]] ; then
-            echo -e "PID is ${COMPONENT_PID},dachuan-manager is being deployed! please wait for a while ..."
+            echo -e "PID is ${COMPONENT_PID},dct is being deployed! please wait for a while ..."
         else
-            echo -e "dachuan-manager is not deployed on server ${HOST_NAME} for $i times! The job will be exited."
+            echo -e "dct is not deployed on server ${HOST_NAME} for $i times! The job will be exited."
             return 1
         fi
         sleep 8

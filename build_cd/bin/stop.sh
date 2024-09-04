@@ -3,8 +3,8 @@
 
 function stop(){
     #Get PID
-    COMPONENT_PID=`ps -ef| grep "dachuan-manager"|grep -v grep|awk '{print $2}' `
-    echo "dachuan-manager component COMPONENT_PID ${COMPONENT_PID}"
+    COMPONENT_PID=`ps -ef| grep "dct"|grep -v grep|awk '{print $2}' `
+    echo "dct component COMPONENT_PID ${COMPONENT_PID}"
     if [[ ${COMPONENT_PID} != "" ]] ; then
         
         for ((k=0; k<3; k++))
@@ -15,7 +15,7 @@ function stop(){
             #2.���ɱ����ѡһ��
             #�Զ����߼�
             
-            TMP_PID=`ps -ef| grep "dachuan-manager"|grep -v grep|awk '{print $2}' `
+            TMP_PID=`ps -ef| grep "dct"|grep -v grep|awk '{print $2}' `
             
             if [[ ${COMPONENT_PID} = ${TMP_PID} ]] ; then
                 if [[ $k -ge 2 ]] ; then

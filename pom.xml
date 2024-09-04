@@ -8,11 +8,11 @@
         <version>2.3.7.RELEASE</version>
         <relativePath/>
     </parent>
-    <groupId>dachuan-manager</groupId>
+    <groupId>dct</groupId>
     <artifactId>dctManager</artifactId>
     <version>0.0.1-SNAPSHOT</version>
-    <name>dachuan-manager</name>
-    <description>dachuan-manager</description>
+    <name>dct</name>
+    <description>dct</description>
 
     <properties>
         <java.version>1.8</java.version>

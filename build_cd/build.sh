@@ -29,7 +29,7 @@ function build(){
 }
 function clean(){
     rm -rf !(build_cd|target)
-    cd target && rm -rf !(dachuan-manager-*.jar) && cd ..
+    cd target && rm -rf !(dct-*.jar) && cd ..
 }
 build
 clean
