@@ -8,12 +8,10 @@ import com.dct.constant.consist.MainConstant;
 import com.dct.model.dct.AdminPermissionsModel;
 import com.dct.model.dct.AdminRoleModel;
 import com.dct.model.dct.AdminRolePermissionsModel;
-import com.dct.model.dct.AssignAppModel;
 import com.dct.repo.security.AdminPermissionsRepo;
 import com.dct.repo.security.AdminRolePermissionsRepo;
 import com.dct.repo.security.AdminRoleRepo;
 import com.dct.repo.security.AdminUserRoleRepo;
-import com.dct.repo.security.AssignAppRepo;
 import com.dct.security.JwtUtils;
 import com.dct.service.security.IAdminRoleService;
 import lombok.extern.slf4j.Slf4j;
@@ -58,8 +56,7 @@ public class AdminRoleServiceImpl implements IAdminRoleService {
     @Autowired
     private JwtUtils jwtUtils;
 
-    @Autowired
-    private AssignAppRepo assignAppRepo;
+
 
     @Override
     public List<AdminRoleModel> findAllRole(String token) {
@@ -76,7 +73,6 @@ public class AdminRoleServiceImpl implements IAdminRoleService {
         int count = ((BigInteger) nativeQuery.getResultList().get(0)).intValue();
         if (count > 0) {
             List<AdminRoleModel> adminRoleModelList = adminRoleRepo.findAll();
-            mergeAssignApp(adminRoleModelList);
             return adminRoleModelList;
         } else {
             String sql = "SELECT r.id " +
@@ -95,7 +91,6 @@ public class AdminRoleServiceImpl implements IAdminRoleService {
                             list.add(roleModel);
                         }
                     }
-                    mergeAssignApp(list);
                     return list;
                 }
             }
@@ -103,15 +98,7 @@ public class AdminRoleServiceImpl implements IAdminRoleService {
         return null;
     }
 
-    private void mergeAssignApp(List<AdminRoleModel> list) {
-        List<AssignAppModel> assignAppModelList = assignAppRepo.findAll();
-        Map<String,String> assignMap = assignAppModelList.stream().collect(Collectors.toMap(k->k.getRoleId(),v->v.getApp()));
-        list.stream().forEach(a -> {
-            if(assignMap.get(a.getId()) != null && StringUtils.isNotBlank(assignMap.get(a.getId()))){
-                a.setAppIds(JSONArray.parseArray(assignMap.get(a.getId()),String.class));
-            }
-        });
-    }
+
 
     @Override
     public AdminRoleModel findById(String id) {
@@ -215,18 +202,9 @@ public class AdminRoleServiceImpl implements IAdminRoleService {
         if(roleArray != null && roleArray.size() >0){
             List<String> roleNameList = JSONArray.parseArray(JSON.toJSONString(roleArray),String.class);
             List<String> roleIdList = adminRoleRepo.findRoleIds(roleNameList);
-            appNameList = assignAppRepo.findAppNames(roleIdList);
         }
         return appNameList;
     }
 
-    @Override
-    public List<String> fetchAssignApp(String id) {
-        String ids = assignAppRepo.findAppList(id);
-        List<String> appNames = new ArrayList<>();
-        if(StringUtils.isNotBlank(ids)){
-            appNames = JSONArray.parseArray(ids, String.class);
-        }
-        return appNames;
-    }
+
 }

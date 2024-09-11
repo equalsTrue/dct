@@ -53,5 +53,4 @@ public interface IAdminRoleService {
      */
     List<String> queryRoleAppInfo(JSONObject params);
 
-    List<String> fetchAssignApp(String id);
 }

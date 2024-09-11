@@ -7,6 +7,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Objects;
 
 /**
  * AdminUserRepo
@@ -72,4 +73,7 @@ public interface AdminUserRepo extends JpaRepository<AdminUserModel, String> {
      */
     @Query("select t.username from AdminUserModel t ")
     List<String> getAllUserName();
+
+
+
 }

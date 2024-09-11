@@ -36,4 +36,7 @@ public interface AdminRoleRepo extends JpaRepository<AdminRoleModel, String> {
      */
     @Query(value = "select distinct p.id from admin_role p where p.roleName in ?1", nativeQuery = true)
     List<String> findRoleIds(List<String> roleNames);
+
+    @Query("select t.roleName from AdminRoleModel t")
+    List<String> findAllRoleName();
 }

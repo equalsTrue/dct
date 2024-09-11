@@ -84,9 +84,6 @@ public class AdminRoleController {
         return adminRoleService.queryRoleAppInfo(params);
     }
 
-    @GetMapping(value = "/fetch/app")
-    public List<String> queryAppByRoleId(@RequestParam String id){
-        return adminRoleService.fetchAssignApp(id);
-    }
+
 
 }

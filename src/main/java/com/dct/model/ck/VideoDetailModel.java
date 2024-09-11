@@ -39,14 +39,14 @@ public class VideoDetailModel {
 
 
 
-    @Column(name = "campaign_id")
-    public String cid;
+    @Column
+    public String creator;
 
     @Column(name = "product_id")
     public String pid;
 
 
-    @Column(name = "affiliate_gmv")
+    @Column(name = "gmv")
     public String gmv;
 
     @Column(name = "video_views")

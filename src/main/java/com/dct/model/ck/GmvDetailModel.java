@@ -31,25 +31,25 @@ public class GmvDetailModel {
     public Long  country;
 
     @Column(name = "campaign_id")
-    public String cid;
+    public String campaign_id;
 
     @Column(name = "campaign_name")
     public String campaign_name;
 
     @Column(name = "product_id")
-    public String pid;
+    public String product_id;
 
     @Column(name = "product_name")
-    public String productName;
+    public String product_name;
 
     @Column(name = "orders")
     public String orders;
 
-    @Column(name = "affiliate_gmv")
+    @Column(name = "gmv")
     public String gmv;
 
     @Column(name = "video_views")
-    public Integer videoViews;
+    public Integer video_views;
 
     @Column(name = "videos")
     public String videos;
@@ -58,12 +58,12 @@ public class GmvDetailModel {
     public String commission;
 
     @Column(name = "level_1_category")
-    public String level1Category;
+    public String level_1_category;
 
     @Column(name = "level_2_category")
-    public String level2Category;
+    public String level_2_category;
 
     @Column(name = "belong_person")
-    public BigDecimal belongPerson;
+    public BigDecimal belong_person;
 
 }

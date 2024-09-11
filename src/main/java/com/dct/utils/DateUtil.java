@@ -4,6 +4,7 @@ import com.dct.constant.consist.DateConstant;
 import com.dct.constant.consist.MainConstant;
 import lombok.extern.slf4j.Slf4j;
 
+import java.text.DateFormat;
 import java.time.*;
 
 import java.math.BigDecimal;
@@ -346,10 +347,34 @@ public class DateUtil {
         if (date1 == null || date2 == null) {
             return 0L;
         }
-        long result = (date1.getTime() - date2.getTime()) / 1000;
+        long result = (date1.getTime() - date2.getTime()) / 1000 ;
         return result;
     }
 
+
+    public static int subData1toData2FormatDay(String day1,String day2){
+        DateFormat dft = new SimpleDateFormat("yyyy-MM-dd");
+        int i=0;
+        try {
+            Date star = dft.parse(day1);//开始时间
+            Date endDay=dft.parse(day2);//结束时间
+            Date nextDay=star;
+
+            while(nextDay.before(endDay)){//当明天不在结束时间之前是终止循环
+                Calendar cld = Calendar.getInstance();
+                cld.setTime(star);
+                cld.add(Calendar.DATE, 1);
+                star = cld.getTime();
+                //获得下一天日期字符串
+                nextDay = star;
+                i++;
+            }
+            return i;
+        } catch (ParseException e) {
+            e.printStackTrace();
+        }
+        return i;
+    }
 
 
 

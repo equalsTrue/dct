@@ -106,6 +106,7 @@ public class AdminUserServiceImpl implements IAdminUserService {
         return userList;
     }
 
+
     @Override
     public void save(AdminUserVO adminUserVO) {
         if(null == adminUserVO || StringUtils.isBlank(adminUserVO.getUsername())
