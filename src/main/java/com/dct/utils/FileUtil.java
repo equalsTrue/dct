@@ -5,7 +5,7 @@ package com.dct.utils;/**
  * @create: 2024/09/10 17:21
  */
 
-import com.dct.constant.enums.NumberEnum;
+import com.dct.common.constant.enums.NumberEnum;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.File;

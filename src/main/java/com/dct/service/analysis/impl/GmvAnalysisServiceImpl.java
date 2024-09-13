@@ -8,7 +8,7 @@ package com.dct.service.analysis.impl;/**
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
-import com.dct.config.datasource.ClickHouseConfig;
+import com.dct.common.config.datasource.ClickHouseConfig;
 import com.dct.model.dct.AccountModel;
 import com.dct.model.vo.GmvDetailVo;
 import com.dct.model.vo.PageQueryVo;
@@ -19,7 +19,6 @@ import com.dct.service.account.IAccountService;
 import com.dct.service.analysis.IGmvAnalysisService;
 import com.dct.utils.DateUtil;
 import org.apache.commons.lang3.StringUtils;
-import org.checkerframework.checker.units.qual.A;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 

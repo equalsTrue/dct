@@ -1,7 +1,7 @@
 package com.dct.utils;
 
 import com.alibaba.fastjson.JSONObject;
-import com.dct.constant.enums.ResponseInfoEnum;
+import com.dct.common.constant.enums.ResponseInfoEnum;
 import com.dct.model.vo.ResponseInfoVO;
 
 public class JSONObjectResponseInfoUtil {

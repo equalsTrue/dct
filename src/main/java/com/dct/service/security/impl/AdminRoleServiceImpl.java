@@ -3,7 +3,7 @@ package com.dct.service.security.impl;
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
-import com.dct.constant.consist.MainConstant;
+import com.dct.common.constant.consist.MainConstant;
 
 import com.dct.model.dct.AdminPermissionsModel;
 import com.dct.model.dct.AdminRoleModel;
@@ -26,8 +26,6 @@ import javax.persistence.Query;
 import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
-import java.util.stream.Collectors;
 
 /**
  * @author Charles

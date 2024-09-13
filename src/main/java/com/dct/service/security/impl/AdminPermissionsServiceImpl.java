@@ -1,6 +1,6 @@
 package com.dct.service.security.impl;
 
-import com.dct.constant.consist.MainConstant;
+import com.dct.common.constant.consist.MainConstant;
 import com.dct.exception.CustomException;
 import com.dct.model.dct.AdminPermissionsModel;
 import com.dct.model.dct.AdminRolePermissionsModel;

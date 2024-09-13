@@ -12,8 +12,10 @@ import com.dct.service.account.IAccountService;
 import com.dct.utils.ResponseInfoUtil;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
@@ -27,14 +29,12 @@ import java.util.List;
  * @author: lichen
  * @create: 2024/09/10 16:21 
  */
-@RestController("/dct/account")
+@RestController
+@RequestMapping("/dct/account")
 public class AccountManagerController {
 
     @Autowired
     private IAccountService accountService;
-
-
-
 
     /**
      * 导入账号文件.
@@ -118,6 +118,9 @@ public class AccountManagerController {
     public ResponseInfoVO deleteAccount(@RequestParam String uid){
         return ResponseInfoUtil.success(accountService.deleteAccount(uid));
     }
+
+
+
 
 
 }

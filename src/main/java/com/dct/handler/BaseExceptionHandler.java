@@ -1,6 +1,6 @@
 package com.dct.handler;
 
-import com.dct.constant.enums.ResponseInfoEnum;
+import com.dct.common.constant.enums.ResponseInfoEnum;
 import com.dct.model.vo.ResponseInfoVO;
 import com.dct.utils.ResponseInfoUtil;
 import org.springframework.validation.FieldError;

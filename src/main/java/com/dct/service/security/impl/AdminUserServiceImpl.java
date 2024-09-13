@@ -2,7 +2,7 @@ package com.dct.service.security.impl;
 
 import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
-import com.dct.constant.consist.MainConstant;
+import com.dct.common.constant.consist.MainConstant;
 import com.dct.exception.CustomException;
 import com.dct.model.dct.AdminConfigMapModel;
 import com.dct.model.dct.AdminRoleModel;

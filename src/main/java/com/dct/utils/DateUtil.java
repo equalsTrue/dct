@@ -1,7 +1,7 @@
 package com.dct.utils;
 
-import com.dct.constant.consist.DateConstant;
-import com.dct.constant.consist.MainConstant;
+import com.dct.common.constant.consist.DateConstant;
+import com.dct.common.constant.consist.MainConstant;
 import lombok.extern.slf4j.Slf4j;
 
 import java.text.DateFormat;

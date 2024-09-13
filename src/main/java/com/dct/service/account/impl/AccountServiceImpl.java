@@ -240,6 +240,7 @@ public class AccountServiceImpl implements IAccountService {
         return result;
     }
 
+
     /**
      * 更新账号信息.
      * @param params

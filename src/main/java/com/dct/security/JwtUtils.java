@@ -1,6 +1,6 @@
 package com.dct.security;
 
-import com.dct.constant.consist.MainConstant;
+import com.dct.common.constant.consist.MainConstant;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.CompressionCodecs;
 import io.jsonwebtoken.Jwts;

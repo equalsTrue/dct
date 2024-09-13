@@ -14,6 +14,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -24,7 +25,8 @@ import org.springframework.web.bind.annotation.RestController;
  * @author: lichen
  * @create: 2024/09/04 12:34 
  */
-@RestController("/dct/analysis")
+@RestController
+@RequestMapping("/dct/analysis")
 public class GmvAnalysisController {
 
     @Autowired

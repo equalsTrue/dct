@@ -1,7 +1,7 @@
 package com.dct.controller.security;
 
 import com.alibaba.fastjson.JSONObject;
-import com.dct.constant.consist.MainConstant;
+import com.dct.common.constant.consist.MainConstant;
 import com.dct.model.dct.AdminConfigMapModel;
 import com.dct.model.vo.OptionVO;
 import com.dct.model.vo.ResponseInfoVO;
