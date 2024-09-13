@@ -22,6 +22,3 @@ logging:
   level:
     com.dct: info
   config: classpath:logback-${spring.profiles.active}.xml
-
-abb:
-  abb: 12

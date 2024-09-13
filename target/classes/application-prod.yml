@@ -107,4 +107,5 @@ ip2region:
   total-header-size: 8192
   location: classpath:ip2region/ip2region.db
 
-
+s3:
+  bucketName: dct-video

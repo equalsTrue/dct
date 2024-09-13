@@ -98,29 +98,6 @@ ip2region:
   total-header-size: 8192
   location: classpath:ip2region/ip2region.db
 
-sqs:
-  url:
-    destinationName: ladder-server-min-info-dev.fifo
-    adjust: ladder-adjust-dev.fifo
 
 s3:
-  url: "https://s3.us-east-1.amazonaws.com"
-
-file:
-  path: "/Users/david/pdata1/ladder_analytics"
-
-whitehouse:
-  ip: sdfsdfds
-
-oracle:
-  sshPubKeyFilePath: "/feige/ssh-key-2022-12-02.key.pub"
-  comptentId: "ocid1.compartment.oc1..aaaaaaaa6j6wgszhtrocrou4kumuxz6vcar2kpsdk4ud2jsbacpnv7f5wv2q"
-  shapeName: "VM.Standard.E4.Flex"
-  systemName: "Canonical Ubuntu"
-  systemVersion: "22.04"
-  subnetName: "ladder"
-  systemDisplayName: "Canonical-Ubuntu-22.04-2023.10.13-0"
-  imageName: "opendct"
-  serverIp: "http://52.57.153.31"
-  maxRetries: "3"
-  retryDelayMs: "300000"
+  bucketName: dct-video
