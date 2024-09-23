@@ -42,8 +42,8 @@ public class AccountManagerController {
      * @return
      */
     @PostMapping("/import")
-    public ResponseInfoVO importAccount(@RequestParam List<MultipartFile> accountFiles){
-        accountService.importAccountFile(accountFiles);
+    public ResponseInfoVO importAccount(@RequestParam List<MultipartFile> accountFile, @RequestParam String manager){
+        accountService.importAccountFile(accountFile,manager);
         return ResponseInfoUtil.success();
     }
 
@@ -66,6 +66,12 @@ public class AccountManagerController {
     @PostMapping("/list")
     public ResponseInfoVO accountList(@RequestBody JSONObject params){
         return ResponseInfoUtil.success(accountService.fetchAccountList(params));
+    }
+
+
+    @GetMapping("/get")
+    public ResponseInfoVO getAccountModel(@RequestParam String id){
+        return ResponseInfoUtil.success(accountService.fetchAccountModel(id));
     }
 
     /**
@@ -112,12 +118,12 @@ public class AccountManagerController {
 
     /**
      * 删除账号.
-     * @param uid
+     * @param id
      * @return
      */
     @GetMapping("/delete")
-    public ResponseInfoVO deleteAccount(@RequestParam String uid){
-        return ResponseInfoUtil.success(accountService.deleteAccount(uid));
+    public ResponseInfoVO deleteAccount(@RequestParam String id){
+        return ResponseInfoUtil.success(accountService.deleteAccount(id));
     }
 
 

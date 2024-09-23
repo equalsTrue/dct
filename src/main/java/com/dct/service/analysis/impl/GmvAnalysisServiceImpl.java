@@ -147,7 +147,7 @@ public class GmvAnalysisServiceImpl implements IGmvAnalysisService {
      * @return
      */
     private List<String> generateCreator(JSONObject params) {
-        List<AccountModel> accountModelList = accountService.fetchAccountList(params);
+        List<AccountModel> accountModelList = accountService.fetchAccountList(params).getList();
         List<String> accountIdList = accountModelList.stream().map(a->a.getCreator()).collect(Collectors.toList());
         return accountIdList;
     }

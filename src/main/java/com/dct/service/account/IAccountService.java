@@ -3,7 +3,7 @@ package com.dct.service.account;
 import com.alibaba.fastjson.JSONObject;
 import com.dct.model.dct.AccountLogModel;
 import com.dct.model.dct.AccountModel;
-import com.dct.model.vo.AccountVo;
+import com.dct.model.vo.PageVO;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
@@ -18,9 +18,9 @@ public interface IAccountService {
     /**
      * 导入账号文件.
      */
-    void importAccountFile(List<MultipartFile> accountFiles);
+    void importAccountFile(List<MultipartFile> accountFiles, String manager);
 
-    List<AccountModel> fetchAccountList(JSONObject params);
+   PageVO fetchAccountList(JSONObject params);
 
     void updateAccount(JSONObject params);
 
@@ -58,4 +58,5 @@ public interface IAccountService {
      */
     String saveAccount(JSONObject params);
 
+    AccountModel fetchAccountModel(String id);
 }

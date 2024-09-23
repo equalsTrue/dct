@@ -76,7 +76,7 @@ public class AccountLogModel extends EntityStringIdBase {
      * 操作人.
      */
     @Column
-    private String handler;
+    private String manager;
 
 
     /**

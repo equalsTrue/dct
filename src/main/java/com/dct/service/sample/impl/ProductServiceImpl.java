@@ -12,19 +12,21 @@ import com.dct.common.constant.consist.MainConstant;
 import com.dct.common.constant.enums.NumberEnum;
 import com.dct.common.websocket.ProductApplyNotification;
 import com.dct.model.dct.ProductModel;
+import com.dct.model.vo.PageQueryVo;
+import com.dct.model.vo.PageVO;
 import com.dct.repo.account.AccountRepo;
 import com.dct.repo.sample.ProductRepo;
 import com.dct.repo.security.AdminUserRepo;
-import com.dct.service.sample.IApproveService;
+import com.dct.service.sample.IBatchHandleService;
 import com.dct.service.sample.IProductService;
 import com.dct.utils.DateUtil;
-import com.dct.utils.ResponseInfoUtil;
 import com.dct.utils.SpringMvcFileUpLoad;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.redisson.api.RLock;
 import org.redisson.api.RedissonClient;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
@@ -35,7 +37,6 @@ import javax.persistence.criteria.CriteriaQuery;
 import javax.persistence.criteria.Predicate;
 import javax.persistence.criteria.Root;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Date;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
@@ -65,17 +66,20 @@ public class ProductServiceImpl implements IProductService {
     @Autowired
     SpringMvcFileUpLoad fileUpLoad;
 
-    @Autowired
-    private StringRedisTemplate stringRedisTemplate;
+
 
     @Autowired
-    private IApproveService approveService;
+    private IBatchHandleService batchService;
+
+
+    @Autowired
+    private StringRedisTemplate stringRedisTemplate;
 
     @Autowired
     private RedissonClient redissonClient;
 
     /**
-     * 保存.
+     * 保存或修改.
      * @param params
      * @return
      */
@@ -91,8 +95,14 @@ public class ProductServiceImpl implements IProductService {
             String region = params.getString("region");
             String storageLocation = params.getString("storageLocation");
             String pid = params.getString("pid");
-            String user = params.getString("user");
-            String applyUser = params.getString("applyUser");
+            String id = params.getString("id");
+            if(StringUtils.isNotBlank(id)){
+                productModel = productRepo.findById(id).get();
+            }else {
+                productModel.setStatus(0);
+                productModel.setOutApply(0);
+                productModel.setIsApproval(0);
+            }
             productModel.setProductName(productName);
             productModel.setCount(count);
             productModel.setColor(color);
@@ -100,11 +110,6 @@ public class ProductServiceImpl implements IProductService {
             productModel.setRegion(region);
             productModel.setStorageLocation(storageLocation);
             productModel.setPid(pid);
-            productModel.setUser(user);
-            productModel.setApplyUser(applyUser);
-            productModel.setStatus(0);
-            productModel.setOutApply(0);
-            productModel.setIsApproval(0);
             productRepo.save(productModel);
             result = MainConstant.SUCCESS;
         }catch (Exception e){
@@ -115,7 +120,7 @@ public class ProductServiceImpl implements IProductService {
     }
 
     @Override
-    public List<ProductModel> fetchList(JSONObject params) {
+    public PageVO fetchList(JSONObject params) {
         JSONArray uidArray = params.getJSONArray("uid");
         JSONArray managerArray = params.getJSONArray("manager");
         JSONArray statusArray = params.getJSONArray("status");
@@ -123,6 +128,8 @@ public class ProductServiceImpl implements IProductService {
         JSONArray outApplyArray = params.getJSONArray("outApply");
         JSONArray applyUser = params.getJSONArray("applyUser");
         JSONArray time = params.getJSONArray("time");
+        Integer page = params.getInteger("page");
+        Integer limit = params.getInteger("limit");
         List<String> uidList = JSONObject.parseArray(JSON.toJSONString(uidArray),String.class);
         List<String> managerList = JSONObject.parseArray(JSON.toJSONString(managerArray),String.class);
         List<Integer> statusList = JSONObject.parseArray(JSON.toJSONString(statusArray),Integer.class);
@@ -185,8 +192,16 @@ public class ProductServiceImpl implements IProductService {
                 return criteriaQuery.getRestriction();
             }
         };
-        List<ProductModel> productList = productRepo.findAll(specification);
-        return productList;
+
+        PageVO pageVO = new PageVO();
+        Long total = productRepo.count(specification);
+        page = page >= 1? page - 1: 0;
+        List<ProductModel> list = productRepo.findAll(specification, PageRequest.of(page, limit)).getContent();
+        pageVO.setTotal(total);
+        pageVO.setList(list);
+        pageVO.setPage(page);
+        pageVO.setTotal(total);
+        return pageVO;
     }
 
     /**
@@ -199,18 +214,20 @@ public class ProductServiceImpl implements IProductService {
         String result = "";
         try {
             String id = params.getString("id");
-            String productName = params.getString("productName");
             Integer status = params.getInteger("status");
-            String location = params.getString("storeLocation");
-            String region = params.getString("region");
+            String user = params.getString("user");
+            String applyUser = params.getString("applyUser");
             ProductModel originModel = productRepo.findById(id).get();
             if(originModel != null){
-                originModel.setProductName(productName);
-                originModel.setStorageLocation(location);
-                originModel.setRegion(region);
+                if(StringUtils.isNotBlank(user)){
+                    originModel.setUser(user);
+                }
+                if(StringUtils.isNotBlank(applyUser)){
+                    originModel.setApplyUser(applyUser);
+                }
             }
             // 修改为在库状态
-            if(status == 3){
+            if(status != null && status == 3){
                 originModel.setCount(originModel.getCount());
                 originModel.setApplyCount(0);
                 originModel.setOutApply(0);
@@ -247,7 +264,7 @@ public class ProductServiceImpl implements IProductService {
         String fileType = file.getContentType();
         if(!org.springframework.util.StringUtils.isEmpty(pid)){
             String fileName = pid + "." + fileType.split("/")[1];
-            String filePath = "dct/product/";
+            String filePath = "product/";
             String s3Url = fileUpLoad.fileUpload(file, fileName, filePath);
             productRepo.updatePictureUrl(pid, s3Url);
         }
@@ -266,12 +283,36 @@ public class ProductServiceImpl implements IProductService {
         String applyUser = params.getString("applyUser");
         String user = params.getString("user");
         String productName = params.getString("productName");
+        Integer count = params.getInteger("count");
         String applyKey = MainConstant.APPLY_PRODUCT + MainConstant.COLON + id;
         RLock applyLock = redissonClient.getLock(applyKey);
+        ProductModel originModel = productRepo.findById(id).get();
+        if(applyCount == null){
+            applyCount = count;
+        }
         try {
             //加锁，同一个ID操作时候其他人不能操作
             if (applyLock.tryLock(NumberEnum.FIVE.getNum(), NumberEnum.TEN.getNum(), TimeUnit.SECONDS)) {
-                productRepo.applyProduct(id,applyCount,applyUser);
+                if(count > applyCount){
+                    productRepo.updateApprove(id,count-applyCount);
+                    ProductModel approveModel = new ProductModel();
+                    approveModel.setManager(originModel.getManager());
+                    approveModel.setUser(originModel.getUser());
+                    approveModel.setIsApproval(1);
+                    approveModel.setOutApply(1);
+                    approveModel.setStatus(1);
+                    approveModel.setApplyUser(originModel.getApplyUser());
+                    approveModel.setPid(originModel.getPid());
+                    approveModel.setColor(originModel.getColor());
+                    approveModel.setCount(applyCount);
+                    approveModel.setApplyCount(applyCount);
+                    approveModel.setPicture(originModel.getPicture());
+                    approveModel.setProductName(originModel.getProductName());
+                    approveModel.setPid(originModel.getPid());
+                    productRepo.save(approveModel);
+                }else if(count == applyCount){
+                    productRepo.applyProduct(id,applyCount,applyUser);
+                }
             } else {
                 log.info("APPLY PRODUCT LOCK:{}", applyLock);
             }
@@ -302,12 +343,47 @@ public class ProductServiceImpl implements IProductService {
         List<String> idList = JSONArray.parseArray(JSON.toJSONString(idArray),String.class);
         try {
             idList.stream().forEach(a->{
-                approveService.approveApply(idList);
+                batchService.approveApply(idList);
             });
             result = MainConstant.SUCCESS;
         }catch (Exception e){
             result = MainConstant.ERROR;
-            log.error("APPROVE PRODUCT ERROR:{}",e.getMessage());
+            log.error("BATCH APPROVE PRODUCT ERROR:{}",e.getMessage());
+        }
+        return result;
+    }
+
+    @Override
+    public String batchApplyProduct(JSONObject params) {
+        String result = "";
+        JSONArray array = params.getJSONArray("batchApply");
+        try {
+            array.stream().forEach(a->{
+                batchService.applyProduct(a);
+            });
+            result = MainConstant.SUCCESS;
+        }catch (Exception e){
+            result = MainConstant.ERROR;
+            log.error("BATCH APPLY PRODUCT ERROR:{}",e.getMessage());
+        }
+        return result;
+    }
+
+    @Override
+    public ProductModel fetchProduct(String id) {
+        ProductModel productModel = productRepo.findById(id).get();
+        return productModel;
+    }
+
+    @Override
+    public String deleteProduct(String id) {
+        String result = "";
+        try {
+            productRepo.deleteById(id);
+            result = MainConstant.SUCCESS;
+        }catch (Exception e){
+            result = MainConstant.ERROR;
+            log.error("DELETE PRODUCT ERROR:{}",e.getMessage());
         }
         return result;
     }

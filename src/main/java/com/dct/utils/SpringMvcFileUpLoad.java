@@ -58,7 +58,7 @@ public class SpringMvcFileUpLoad {
 			map.put(fileName, tempFile);
 			s3Util.uploadToS3(s3Path, map);
 			deleteFile(tempFile);
-			String s3Url = getS3UrlHead().trim() + "/" + s3Path + fileName;
+			String s3Url = getS3UrlHead().trim() + "product/"  + fileName;
 			return s3Url;
 		}catch (Exception e){
 			log.error("SUBMIT TO S3 ERROR:{}",e.getMessage());
@@ -154,7 +154,7 @@ public class SpringMvcFileUpLoad {
 		return map;
 	}
 	private String getS3UrlHead(){
-		return "https://s3.ap-southeast-1.amazonaws.com/" + bucketName ;
+		return "https://dct-video.s3.eu-central-1.amazonaws.com/";
 	}
 
 }

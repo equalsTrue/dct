@@ -25,7 +25,7 @@ public class AmazonConfig {
     @Bean(name = "s3Client")
     public AmazonS3 s3ConfigBean(){
         AmazonS3 amazonS3 = AmazonS3Client.builder()
-                .withRegion("ap-southeast-1")
+                .withRegion("eu-central-1")
                 .withCredentials(new AWSStaticCredentialsProvider(this.s3BasicAWSCredentials()))
                 .build();
         return amazonS3;

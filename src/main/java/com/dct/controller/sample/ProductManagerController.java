@@ -15,6 +15,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -63,13 +64,17 @@ public class ProductManagerController {
         return ResponseInfoUtil.success(productService.fetchList(params));
     }
 
+
     /**
-     * 修改.
+     * 查询具体信息.
+     * @param id
+     * @return
      */
-    @PostMapping("/update")
-    public ResponseInfoVO updateProduct(@RequestBody JSONObject params){
-        return ResponseInfoUtil.success(productService.updateProduct(params));
+    @GetMapping("/get")
+    public ResponseInfoVO fetchList(@RequestParam String id){
+        return ResponseInfoUtil.success(productService.fetchProduct(id));
     }
+
 
 
     /**
@@ -96,6 +101,16 @@ public class ProductManagerController {
     }
 
     /**
+     * 批量申请.
+     * @param params
+     * @return
+     */
+    @PostMapping(value = "/batch/apply")
+    public ResponseInfoVO batchApplyProduct(@RequestBody JSONObject params){
+        return ResponseInfoUtil.success(productService.batchApplyProduct(params));
+    }
+
+    /**
      * 批准.
      * @param params
      * @return
@@ -103,5 +118,15 @@ public class ProductManagerController {
     @PostMapping(value = "/approve")
     public ResponseInfoVO approveProduct(@RequestBody JSONObject params){
         return ResponseInfoUtil.success(productService.approveProduct(params));
+    }
+
+    @GetMapping(value = "/delete")
+    public ResponseInfoVO deleteProduct(@RequestParam String id){
+        return ResponseInfoUtil.success(productService.deleteProduct(id));
+    }
+
+    @PostMapping(value = "/update/info")
+    public ResponseInfoVO updateProduct(@RequestBody JSONObject params){
+        return ResponseInfoUtil.success(productService.updateProduct(params));
     }
 }

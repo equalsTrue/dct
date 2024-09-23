@@ -33,7 +33,7 @@ public interface ProductRepo extends JpaRepository<ProductModel,String>, JpaSpec
      * @param applyCount
      * @param applyUser
      */
-    @Query("update ProductModel set applyCount = ?2,applyUser = ?3,status = 1,outApply = 1,isApproval = 0 where pid = ?1")
+    @Query("update ProductModel set applyCount = ?2,applyUser = ?3,status = 1,outApply = 1,isApproval = 0 where id = ?1")
     @Modifying(clearAutomatically = true)
     @Transactional(rollbackFor = Exception.class)
     void applyProduct(String id,Integer applyCount, String applyUser);
@@ -58,13 +58,15 @@ public interface ProductRepo extends JpaRepository<ProductModel,String>, JpaSpec
 
     /**
      * 更新所有数量拍摄中.
+     *
      * @param id
      * @param count
+     * @param applyCount
      */
-    @Query("update ProductModel t set t.count = 0,t.applyCount = ?2,t.status = 2,t.isApproval = 1 where t.id = ?1")
+    @Query("update ProductModel t set t.count = ?2,t.applyCount = ?3,t.status = 2,t.isApproval = 1 where t.id = ?1")
     @Modifying(clearAutomatically = true)
     @Transactional(rollbackFor = Exception.class)
-    void updateAllApprove(String id, Integer count);
+    void updateAllApprove(String id, Integer count, Integer applyCount);
 
 
 }

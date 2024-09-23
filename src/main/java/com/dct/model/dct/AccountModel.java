@@ -39,6 +39,8 @@ public class AccountModel extends EntityStringIdBase {
     @Column
     private String country;
 
+
+
     /**
      * 分配状态(0:可分配状态，1:已分配状态)
      */

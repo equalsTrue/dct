@@ -2,6 +2,7 @@ package com.dct.service.sample;
 
 import com.alibaba.fastjson.JSONObject;
 import com.dct.model.dct.ProductModel;
+import com.dct.model.vo.PageVO;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
@@ -16,7 +17,7 @@ public interface IProductService {
 
     String save(JSONObject params);
 
-    List<ProductModel> fetchList(JSONObject params);
+    PageVO fetchList(JSONObject params);
 
     String updateProduct(JSONObject params);
 
@@ -27,4 +28,10 @@ public interface IProductService {
     String applyProduct(JSONObject params);
 
     String approveProduct(JSONObject params);
+
+    String batchApplyProduct(JSONObject params);
+
+    ProductModel fetchProduct(String id);
+
+    String deleteProduct(String id);
 }

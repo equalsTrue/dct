@@ -10,21 +10,19 @@ import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
 import com.dct.model.dct.AccountLogModel;
 import com.dct.model.dct.AccountModel;
-import com.dct.model.vo.AccountVo;
-import com.dct.model.vo.AdminUserVO;
+import com.dct.model.vo.PageVO;
 import com.dct.repo.account.AccountLogRepo;
 import com.dct.repo.account.AccountRepo;
 import com.dct.repo.security.AdminRoleRepo;
 import com.dct.repo.security.AdminUserRepo;
-import com.dct.repo.security.AdminUserRoleRepo;
 import com.dct.service.account.IAccountService;
 import com.dct.service.security.IAdminUserService;
 import com.dct.utils.DateUtil;
 import com.dct.utils.FileUtil;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
-import org.checkerframework.checker.units.qual.A;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
@@ -34,13 +32,13 @@ import javax.persistence.criteria.CriteriaBuilder;
 import javax.persistence.criteria.CriteriaQuery;
 import javax.persistence.criteria.Predicate;
 import javax.persistence.criteria.Root;
+import java.io.BufferedReader;
 import java.io.File;
+import java.io.FileInputStream;
+import java.io.InputStreamReader;
 import java.util.ArrayList;
 import java.util.Date;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
-import java.util.stream.Collectors;
 
 /**
  * @program dct
@@ -54,6 +52,9 @@ public class AccountServiceImpl implements IAccountService {
 
     @Autowired
     private IAdminUserService userService;
+
+    @Autowired
+    private AdminRoleRepo adminRoleRepo;
 
     @Autowired
     private AccountRepo accountRepo;
@@ -70,12 +71,15 @@ public class AccountServiceImpl implements IAccountService {
 
     @Override
     @Async
-    public void importAccountFile(List<MultipartFile> files) {
+    public void importAccountFile(List<MultipartFile> files, String manager) {
         try {
             List<AccountModel> allAccountList = new ArrayList<>();
             files.stream().forEach(a->{
                 File tempFile = FileUtil.multipartFileToFile(a);
                 List<AccountModel> accountModelList = handleImportAccountTask(tempFile);
+                accountModelList.stream().forEach(b->{
+                    b.setManager(manager);
+                });
                 allAccountList.addAll(accountModelList);
             });
             accountRepo.saveAll(allAccountList);
@@ -97,18 +101,36 @@ public class AccountServiceImpl implements IAccountService {
 
     private List<AccountModel> readExcelFile(File file) {
         List<AccountModel> accountModelList = new ArrayList<>();
+        try {
+            BufferedReader reader = new BufferedReader(new InputStreamReader(new FileInputStream(file), "utf-8"));
+            int index = 0;
+            String line = null;
+            while ((line = reader.readLine()) != null) {
+                AccountModel accountModel = new AccountModel();
+                String[] item = line.split(",");
+                String creator = item[0];
+                String uid = item[1];
+                accountModel.setCreator(creator);
+                accountModel.setUid(uid);
+                accountModelList.add(accountModel);
+                index++;
+            }
+        }catch (Exception e){
+            log.error("SUBMIT FILE ERROR:{}",e.getMessage());
+        }
         return accountModelList;
     }
 
 
     @Override
-    public List<AccountModel> fetchAccountList(JSONObject params) {
+    public PageVO fetchAccountList(JSONObject params) {
         JSONArray creatorArray = params.getJSONArray("creator");
         JSONArray uidArray = params.getJSONArray("uid");
         JSONArray personArray = params.getJSONArray("belongPerson");
         JSONArray groupArray = params.getJSONArray("userGroup");
         JSONArray countryArray = params.getJSONArray("country");
         JSONArray statusArray = params.getJSONArray("status");
+        Integer assignStatus = params.getInteger("assignStatus");
         List<String> creatorList = JSONArray.parseArray(JSON.toJSONString(creatorArray),String.class);
         List<String> uidList = JSONArray.parseArray(JSON.toJSONString(uidArray),String.class);
         List<String> personList = JSONArray.parseArray(JSON.toJSONString(personArray),String.class);
@@ -154,6 +176,9 @@ public class AccountServiceImpl implements IAccountService {
                     }
                     predicates.add(in);
                 }
+                if(assignStatus != null){
+                    predicates.add(criteriaBuilder.equal(root.get("assignStatus"),assignStatus));
+                }
                 if(statusList != null && statusList.size() >0){
                     CriteriaBuilder.In<String> in = criteriaBuilder.in(root.get("status"));
                     for (String status : statusList) {
@@ -165,8 +190,21 @@ public class AccountServiceImpl implements IAccountService {
                 return criteriaQuery.getRestriction();
             }
         };
-        List<AccountModel> accountModelList = accountRepo.findAll(specification);
-        return accountModelList;
+        Integer page = params.getInteger("page");
+        Integer limit = params.getInteger("limit");
+        PageVO pageVO = new PageVO();
+        Long total = accountRepo.count(specification);
+        page = page >= 1? page - 1: 0;
+        List<AccountModel> list = accountRepo.findAll(specification, PageRequest.of(page, limit)).getContent();
+        pageVO.setTotal(total);
+        list.stream().forEach(a->{
+            List<String> userGroupList = adminRoleRepo.queryRoleNames(a.getBelongPerson());
+            a.setUserGroup(userGroupList != null && userGroupList.size() > 0  ? userGroupList.get(0) : "");
+        });
+        pageVO.setList(list);
+        pageVO.setPage(page);
+        pageVO.setTotal(total);
+        return pageVO;
     }
 
     /**
@@ -175,11 +213,16 @@ public class AccountServiceImpl implements IAccountService {
      */
     @Override
     public void updateAssignAccount(JSONObject params) {
-        JSONArray uidArray = params.getJSONArray("uid");
-        List<String> uidList = JSONArray.parseArray(JSON.toJSONString(uidArray),String.class);
+        String uid = params.getString("uid");
         String belongPerson = params.getString("belongPerson");
-        String userGroup = params.getString("userGroup");
-        String country = params.getString("userCountry");
+        List<String> userGroupList = adminRoleRepo.queryRoleNames(belongPerson);
+        String userGroup = "";
+        if(userGroupList != null && userGroupList.size() > 1){
+            userGroup = userGroupList.get(0);
+        }
+        String country = params.getString("country");
+        List<String> uidList = new ArrayList<>();
+        uidList.add(uid);
         accountRepo.assignAccount(uidList,belongPerson,userGroup,country,DateUtil.formatYyyyMmDdHhMmSs(new Date()));
     }
 
@@ -208,14 +251,14 @@ public class AccountServiceImpl implements IAccountService {
 
     /**
      * 删除账号
-     * @param uid
+     * @param id
      * @return
      */
     @Override
-    public String deleteAccount(String uid) {
+    public String deleteAccount(String id) {
         String result = "";
         try {
-            accountRepo.deleteByUid(uid);
+            accountRepo.deleteById(id);
         }catch (Exception e){
             log.error("DELETE ACCOUNT ERROR");
         }
@@ -229,8 +272,14 @@ public class AccountServiceImpl implements IAccountService {
             AccountModel accountModel = new AccountModel();
             String creator = params.getString("creator");
             String uid = params.getString("uid");
+            String country = params.getString("country");
+            String belongUser = params.getString("belongPerson");
+            String manager = params.getString("manager");
             accountModel.setCreator(creator);
             accountModel.setUid(uid);
+            accountModel.setManager(manager);
+            accountModel.setCountry(country);
+            accountModel.setBelongPerson(belongUser);
             accountRepo.save(accountModel);
             result = "success";
         }catch (Exception e){
@@ -240,6 +289,12 @@ public class AccountServiceImpl implements IAccountService {
         return result;
     }
 
+    @Override
+    public AccountModel fetchAccountModel(String id) {
+        AccountModel accountModel = accountRepo.findById(id).get();
+        return accountModel;
+    }
+
 
     /**
      * 更新账号信息.
@@ -247,12 +302,12 @@ public class AccountServiceImpl implements IAccountService {
      */
     @Override
     public void updateAccount(JSONObject params) {
-        String uid = params.getString("uid");
+        String id = params.getString("id");
         String belongPerson = params.getString("belongPerson");
         String userGroup = params.getString("userGroup");
         Integer status = params.getInteger("status");
-        String handler = params.getString("handler");
-        AccountModel originModel = accountRepo.findFirstByUid(uid);
+        String country = params.getString("country");
+        AccountModel originModel = accountRepo.findById(id).get();
         AccountModel updateModel = new AccountModel();
         AccountLogModel logModel = new AccountLogModel();
         if(originModel != null){
@@ -262,13 +317,21 @@ public class AccountServiceImpl implements IAccountService {
             updateModel.setUid(originModel.getUid());
             updateModel.setAssignStatus(originModel.getAssignStatus());
             updateModel.setCountry(originModel.getCountry());
+            updateModel.setDeliverTime(originModel.getDeliverTime());
+            updateModel.setStatus(originModel.getStatus());
             logModel.setCreator(originModel.getCreator());
             logModel.setUid(originModel.getUid());
+            // 是否重新分配人
             if(StringUtils.isNotBlank(belongPerson)){
                 updateModel.setBelongPerson(belongPerson);
-                updateModel.setUserGroup(userGroup);
+                updateModel.setUserGroup(adminRoleRepo.queryRoleNames(belongPerson).get(0));
                 logModel.setBeforePerson(originModel.getBelongPerson());
                 logModel.setLocalPerson(belongPerson);
+            }else {
+                updateModel.setBelongPerson(originModel.getBelongPerson());
+                updateModel.setUserGroup(originModel.getUserGroup());
+                logModel.setLocalPerson(originModel.getBelongPerson());
+                logModel.setBeforePerson(originModel.getBelongPerson());
             }
             if(status != null){
                 updateModel.setStatus(status);
@@ -279,8 +342,14 @@ public class AccountServiceImpl implements IAccountService {
                 }else if(status == 2){
                     updateModel.setTerminateTime(DateUtil.formatYyyyMmDdHhMmSs(new Date()));
                 }
+            }else {
+                logModel.setBeforeStatus(originModel.getStatus());
+                logModel.setLocalStatus(originModel.getStatus());
             }
-            logModel.setHandler(handler);
+            if(StringUtils.isNotBlank(country)){
+                updateModel.setCountry(country);
+            }
+            logModel.setManager(originModel.getManager());
             logModel.setUpdateTime(new Date());
             accountRepo.saveAndFlush(updateModel);
             accountLogRepo.saveAndFlush(logModel);
