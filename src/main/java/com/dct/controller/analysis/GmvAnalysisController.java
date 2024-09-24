@@ -26,7 +26,7 @@ import org.springframework.web.bind.annotation.RestController;
  * @create: 2024/09/04 12:34 
  */
 @RestController
-@RequestMapping("/dct/analysis")
+@RequestMapping("/dct")
 public class GmvAnalysisController {
 
     @Autowired

@@ -15,6 +15,8 @@ import com.dct.model.vo.PageQueryVo;
 import com.dct.model.vo.PageVO;
 import com.dct.model.vo.VideoDetailVo;
 import com.dct.repo.account.AccountRepo;
+import com.dct.repo.security.AdminRoleRepo;
+import com.dct.repo.security.AdminUserRepo;
 import com.dct.service.account.IAccountService;
 import com.dct.service.analysis.IGmvAnalysisService;
 import com.dct.utils.DateUtil;
@@ -46,6 +48,12 @@ public class GmvAnalysisServiceImpl implements IGmvAnalysisService {
 
     @Autowired
     private IAccountService accountService;
+
+    @Autowired
+    private AdminRoleRepo adminRoleRepo;
+
+    @Autowired
+    private AdminUserRepo adminUserRepo;
 
 
     /**
@@ -523,46 +531,34 @@ public class GmvAnalysisServiceImpl implements IGmvAnalysisService {
         params.put("pid",pidList);
         params.put("level_1_category",level1List);
         params.put("level_2_category",level2List);
-        params.put("campaign_id",cidList);
+        params.put("cid",cidList);
         return params;
     }
 
     @Override
     public JSONObject fetchQueryCreatorListParams() {
         StringBuffer sql = new StringBuffer();
-        sql.append("SELECT distinct(pid)as pid,distinct(level_1_category)as level_1_category,distinct(level_2_category)as level_2_category," +
-                "distinct(campaign_id)as campaign_id FROM t_gmv_detail");
+        sql.append("SELECT distinct(creator)creator as creator FROM t_gmv_detail");
         List<Map<String, String>> results = generateQueryResult(sql);
-        List<String> pidList = new ArrayList<>();
-        List<String> level1List = new ArrayList<>();
-        List<String> level2List = new ArrayList<>();
-        List<String> cidList = new ArrayList<>();
+        List<String> creatorList = new ArrayList<>();
         results.stream().forEach(a->{
             a.entrySet().stream().forEach(b -> {
                 String key = b.getKey();
                 String value = b.getValue();
                 switch (key){
-                    case "pid":
-                        pidList.add(value);
-                        break;
-                    case "level_1_category":
-                        level1List.add(value);
-                        break;
-                    case "level_2_category":
-                        level2List.add(value);
-                        break;
-                    case "campaign_id":
-                        cidList.add(value);
+                    case "craetor":
+                        creatorList.add(value);
                         break;
                     default:
                 }
             });
         });
         JSONObject params = new JSONObject();
-        params.put("pid",pidList);
-        params.put("level_1_category",level1List);
-        params.put("level_2_category",level2List);
-        params.put("campaign_id",cidList);
+        params.put("creator",creatorList);
+        List<String> userList = adminUserRepo.findAll().stream().map(a->a.getUsername()).collect(Collectors.toList());
+        List<String> userGroupList = adminRoleRepo.findAllRoleName();
+        params.put("user",userList);
+        params.put("userGroup",userGroupList);
         return params;
     }
 

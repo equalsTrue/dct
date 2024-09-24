@@ -54,6 +54,9 @@ public class GmvDetailModel {
     @Column(name = "videos")
     public String videos;
 
+    /**
+     * 佣金
+     */
     @Column(name = "commission")
     public String commission;
 
