@@ -21,7 +21,7 @@ import javax.persistence.Table;
 @Entity
 @Table(name = "video_detail")
 @Data
-public class CreatorDetailModel extends {
+public class CreatorDetailModel {
 
     @Id
     @Column(name = "id")
