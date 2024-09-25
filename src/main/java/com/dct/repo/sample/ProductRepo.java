@@ -63,10 +63,18 @@ public interface ProductRepo extends JpaRepository<ProductModel,String>, JpaSpec
      * @param count
      * @param applyCount
      */
-    @Query("update ProductModel t set t.count = ?2,t.applyCount = ?3,t.status = 2,t.isApproval = 1 where t.id = ?1")
+    @Query("update ProductModel t set t.count = ?2,t.applyCount = ?3,t.status = 3,t.isApproval = 1 where t.id = ?1")
     @Modifying(clearAutomatically = true)
     @Transactional(rollbackFor = Exception.class)
     void updateAllApprove(String id, Integer count, Integer applyCount);
 
+    /**
+     * 查询在库状态的样品.
+     * @param pid
+     * @param color
+     * @return
+     */
+    @Query("select t from ProductModel t where t.pid = ?1 and t.color = ?2 and t.status = 1 and t.outApply = 0 and t.isApproval = 0")
+    List<ProductModel> findNoApplyModel(String pid,String color);
 
 }

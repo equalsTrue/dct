@@ -34,5 +34,11 @@ public class ProductDetailModel {
     @Column(name = "url")
     private String url;
 
+    /**
+     * 账号(starp/vista)
+     */
+    @Column(name = "account")
+    public String account;
+
 
 }

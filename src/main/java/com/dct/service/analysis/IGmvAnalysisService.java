@@ -3,6 +3,7 @@ package com.dct.service.analysis;
 import com.alibaba.fastjson.JSONObject;
 import com.dct.model.vo.PageQueryVo;
 import com.dct.model.vo.VideoDetailVo;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 
@@ -54,4 +55,17 @@ public interface IGmvAnalysisService {
      * @return
      */
     JSONObject fetchQueryCreatorListParams();
+
+    /**
+     * 处理csv文件
+     *
+     * @param gmvFile
+     * @param vidFile
+     * @param pidFile
+     * @param creatorFile
+     * @param account
+     * @param time
+     * @param country
+     */
+    void handleTkReport(MultipartFile gmvFile, MultipartFile vidFile, MultipartFile pidFile, MultipartFile creatorFile, String account, String time, String country);
 }

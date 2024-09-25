@@ -9,6 +9,10 @@ import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
 import com.dct.common.config.datasource.ClickHouseConfig;
+import com.dct.common.constant.consist.MainConstant;
+import com.dct.common.constant.enums.NumberEnum;
+import com.dct.model.ck.GmvDetailModel;
+import com.dct.model.ck.VideoDetailModel;
 import com.dct.model.dct.AccountModel;
 import com.dct.model.vo.GmvDetailVo;
 import com.dct.model.vo.PageQueryVo;
@@ -20,10 +24,20 @@ import com.dct.repo.security.AdminUserRepo;
 import com.dct.service.account.IAccountService;
 import com.dct.service.analysis.IGmvAnalysisService;
 import com.dct.utils.DateUtil;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.io.OutputStream;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -41,6 +55,7 @@ import java.util.stream.Collectors;
  * @create: 2024/09/04 14:21
  */
 @Service
+@Slf4j
 public class GmvAnalysisServiceImpl implements IGmvAnalysisService {
 
     @Autowired
@@ -54,6 +69,30 @@ public class GmvAnalysisServiceImpl implements IGmvAnalysisService {
 
     @Autowired
     private AdminUserRepo adminUserRepo;
+
+
+    /**
+     * GMV 数据列.
+     */
+    Map<String, Integer> gmvDataIndex = new HashMap<>(0);
+
+    /**
+     * VID 数据列.
+     */
+    Map<String, Integer> vidDataIndex = new HashMap<>(0);
+
+
+    /**
+     * pid 数据列.
+     */
+    Map<String, Integer> pidDataIndex = new HashMap<>(0);
+
+
+    /**
+     * creator 数据列.
+     */
+    Map<String, Integer> creatorDataIndex = new HashMap<>(0);
+
 
 
     /**
@@ -560,6 +599,365 @@ public class GmvAnalysisServiceImpl implements IGmvAnalysisService {
         params.put("user",userList);
         params.put("userGroup",userGroupList);
         return params;
+    }
+
+    @Override
+    public void handleTkReport(MultipartFile gmvFile, MultipartFile vidFile, MultipartFile pidFile, MultipartFile creatorFile, String account, String time, String country) {
+        handleGmvFile(gmvFile,account,time,country);
+        handleVidFile(vidFile,account,time,country);
+        handlePidFile(pidFile,account,time,country);
+        handleCreatorFile(creatorFile,account,time,country);
+    }
+
+    public void deleteFile(File excelFile) {
+        if (excelFile.exists()) {
+            excelFile.delete();
+        }
+    }
+
+    private void handleCreatorFile(MultipartFile creatorFile, String account, String time, String country) {
+        try {
+            File tempFile = multipartFileToFile(creatorFile);
+            importCsvFile(tempFile, account, time,"creator", country);
+            deleteFile(tempFile);
+        } catch (Exception e) {
+            log.error("HANDLE SUBMIT FILE:{}, ERROR:{}", account, e);
+        }
+    }
+
+    private void handlePidFile(MultipartFile pidFile, String account, String time, String country) {
+        try {
+            File tempFile = multipartFileToFile(pidFile);
+            importCsvFile(tempFile, account, time,"pid", country);
+            deleteFile(tempFile);
+        } catch (Exception e) {
+            log.error("HANDLE SUBMIT FILE:{}, ERROR:{}", account, e);
+        }
+    }
+
+    private void handleVidFile(MultipartFile vidFile, String account, String time, String country) {
+        try {
+            File tempFile = multipartFileToFile(vidFile);
+            importCsvFile(tempFile, account, time,"vid", country);
+            deleteFile(tempFile);
+        } catch (Exception e) {
+            log.error("HANDLE SUBMIT FILE:{}, ERROR:{}", account, e);
+        }
+    }
+
+    private void handleGmvFile(MultipartFile gmvFile, String account, String time, String country) {
+        try {
+            File tempFile = multipartFileToFile(gmvFile);
+            importCsvFile(tempFile, account, time,"gmv",country);
+            deleteFile(tempFile);
+        } catch (Exception e) {
+            log.error("HANDLE SUBMIT FILE:{}, ERROR:{}", account, e);
+        }
+    }
+
+    /**
+     * 处理
+     *
+     * @param file
+     * @param account
+     * @param time
+     * @param type
+     * @param country
+     */
+    private void importCsvFile(File file, String account, String time, String type, String country) {
+        try {
+            BufferedReader reader = new BufferedReader(new InputStreamReader(new FileInputStream(file), "utf-8"));
+            switch (type){
+                case "gmv":
+                    generateGmvIndex(reader);
+                    saveGmvData(reader,account,time,country);
+                    break;
+                case "vid":
+                    generateVidIndex(reader);
+                    saveVidData(reader,account,time);
+                    break;
+                case "pid":
+                    generatePidIndex(reader,account,time);
+                    savePidData(reader,account,time);
+                    break;
+                case "creator":
+                    generateCreatorIndex(reader,account,time);
+                    saveCreatorData(reader,account,time);
+                    break;
+                default:
+            }
+        }catch (Exception e){
+
+        }
+
+    }
+
+    private void saveCreatorData(BufferedReader reader, String account, String time) {
+    }
+
+    private void generateCreatorIndex(BufferedReader reader, String account, String time) {
+
+    }
+
+    private void savePidData(BufferedReader reader, String account, String time) {
+
+    }
+
+    private void generatePidIndex(BufferedReader reader, String account, String time) {
+
+    }
+
+    private void saveVidData(BufferedReader reader, String account, String time) {
+        List<VideoDetailModel> videoDetailModels = new ArrayList<>();
+        try {
+            int index = 0;
+            String line = null;
+            while ((line = reader.readLine()) != null) {
+                boolean validate = true;
+                if (validate) {
+                    VideoDetailModel model = new VideoDetailModel();
+                    String[] item = line.split(",");
+                    String creator = item[vidDataIndex.get(MainConstant.CREATOR)];
+                    String product_id = item[vidDataIndex.get(MainConstant.PID)];
+                    String vid = item[vidDataIndex.get(MainConstant.VID)];
+                    String videoName = item[vidDataIndex.get(MainConstant.VIDEO_NAME)];
+                    double gmv = Double.valueOf(generateFormatValue(item[vidDataIndex.get(MainConstant.GMV)]));
+                    Integer video_views = Integer.valueOf(generateFormatValue(item[vidDataIndex.get(MainConstant.VIDEO_VIEWS)]));
+                    double commission = Double.valueOf(generateFormatValue(item[vidDataIndex.get(MainConstant.COMMISSION)]));
+                    model.setDate(time);
+                    model.setAccount(account);
+                    model.setCreator(creator);
+                    model.setProduct_id(product_id);
+                    model.setGmv(gmv);
+                    model.setVid(vid);
+                    model.setVideo_name(videoName);
+                    model.setVideo_views(video_views);
+                    model.setCommission(commission);
+                    String url = "http://www.tiktok.com/@handle/video/" + vid;
+                    model.setUrl(url);
+                    videoDetailModels.add(model);
+                    index++;
+                } else {
+                    break;
+                }
+            }
+        } catch (Exception e) {
+            log.error( "  GENERATE VIDEO DATA ERROR:{}", e.getMessage());
+        }
+    }
+
+    private void generateVidIndex(BufferedReader reader) {
+        try {
+            String line = null;
+            int indexLine = 0;
+            while ((line = reader.readLine()) != null) {
+                String[] item = line.split(",");
+                if (indexLine == 1) {
+                    for (int i = 0; i < item.length; i++) {
+                        switch (i) {
+                            case 0:
+                                vidDataIndex.put(MainConstant.DATE, i);
+                                break;
+                            case 4:
+                                vidDataIndex.put(MainConstant.CREATOR, i);
+                                break;
+                            case 5:
+                                vidDataIndex.put(MainConstant.VID, i);
+                                break;
+                            case 6:
+                                vidDataIndex.put(MainConstant.VIDEO_NAME, i);
+                                break;
+                            case 8:
+                                vidDataIndex.put(MainConstant.PID, i);
+                                break;
+                            case 12:
+                                vidDataIndex.put(MainConstant.GMV, i);
+                                break;
+                            case 13:
+                                vidDataIndex.put(MainConstant.COMMISSION, i);
+                                break;
+                            case 16:
+                                vidDataIndex.put(MainConstant.VIDEO_VIEWS, i);
+                                break;
+
+                            default:
+                                break;
+                        }
+                    }
+                    break;
+                }
+                indexLine++;
+            }
+        } catch (Exception e) {
+            log.error("GET VIDEO DATA INDEX ERROR:{}", e.getMessage());
+        }
+
+    }
+
+    private void saveGmvData(BufferedReader reader, String account, String time, String country) {
+        List<GmvDetailModel> gmvDetailModels = new ArrayList<>();
+        try {
+            int index = 0;
+            String line = null;
+            while ((line = reader.readLine()) != null) {
+                boolean validate = true;
+                if (validate) {
+                    GmvDetailModel model = new GmvDetailModel();
+                    String[] item = line.split(",");
+                    String campaign_id = item[gmvDataIndex.get(MainConstant.CAMPAIGN_ID)];
+                    String campaign_name = item[gmvDataIndex.get(MainConstant.CAMPAIGN_NAME)];
+                    String creator = item[gmvDataIndex.get(MainConstant.CREATOR)];
+                    String product_id = item[gmvDataIndex.get(MainConstant.PID)];
+                    String product_name =  item[gmvDataIndex.get(MainConstant.PRODUCT_NAME)];
+                    String level_1_category = item[gmvDataIndex.get(MainConstant.LEVEL_1_CATEGORY)];
+                    String level_2_category = item[gmvDataIndex.get(MainConstant.LEVEL_2_CATEGORY)];
+                    double gmv = Double.valueOf(generateFormatValue(item[gmvDataIndex.get(MainConstant.GMV)]));
+                    Integer order = Integer.valueOf(generateFormatValue(item[gmvDataIndex.get(MainConstant.ORDER)]));
+                    Integer video = Integer.valueOf(generateFormatValue(item[gmvDataIndex.get(MainConstant.VIDEOS)]));
+                    Integer video_views = Integer.valueOf(generateFormatValue(item[gmvDataIndex.get(MainConstant.VIDEO_VIEWS)]));
+                    double commission = Double.valueOf(generateFormatValue(item[gmvDataIndex.get(MainConstant.COMMISSION)]));
+                    model.setCampaign_id(campaign_id);
+                    model.setCampaign_name(campaign_name);
+                    model.setCountry(country);
+                    model.setDate(time);
+                    model.setAccount(account);
+                    model.setCreator(creator);
+                    model.setProduct_id(product_id);
+                    model.setProduct_name(product_name);
+                    model.setLevel_1_category(level_1_category);
+                    model.setLevel_2_category(level_2_category);
+                    model.setGmv(gmv);
+                    model.setOrders(order);
+                    model.setVideos(video);
+                    model.setVideo_views(video_views);
+                    model.setCommission(commission);
+                    gmvDetailModels.add(model);
+                    index++;
+                } else {
+                    break;
+                }
+            }
+        } catch (Exception e) {
+            log.error( "  GENERATE GMV DATA ERROR:{}", e.getMessage());
+        }
+    }
+
+
+    /**
+     * format num.
+     *
+     * @param value
+     * @return
+     */
+    private String generateFormatValue(String value) {
+        value = StringUtils.isBlank(value) || value.equalsIgnoreCase(MainConstant.MID_LINE) ? "0" : value;
+        return value;
+    }
+
+    private void generateGmvIndex(BufferedReader reader) {
+        try {
+            String line = null;
+            int indexLine = 0;
+            while ((line = reader.readLine()) != null) {
+                String[] item = line.split(",");
+                if (indexLine == 1) {
+                    for (int i = 0; i < item.length; i++) {
+                        switch (i) {
+                            case 0:
+                                gmvDataIndex.put(MainConstant.DATE, i);
+                                break;
+                            case 1:
+                                gmvDataIndex.put(MainConstant.CAMPAIGN_ID, i);
+                                break;
+                            case 2:
+                                gmvDataIndex.put(MainConstant.CAMPAIGN_NAME, i);
+                                break;
+                            case 4:
+                                gmvDataIndex.put(MainConstant.CREATOR, i);
+                                break;
+                            case 5:
+                                gmvDataIndex.put(MainConstant.PID, i);
+                                break;
+                            case 6:
+                                gmvDataIndex.put(MainConstant.PRODUCT_NAME, i);
+                                break;
+                            case 7:
+                                gmvDataIndex.put(MainConstant.LEVEL_1_CATEGORY, i);
+                                break;
+                            case 8:
+                                gmvDataIndex.put(MainConstant.LEVEL_2_CATEGORY, i);
+                                break;
+                            case 9:
+                                gmvDataIndex.put(MainConstant.GMV, i);
+                                break;
+                            case 12:
+                                gmvDataIndex.put(MainConstant.ORDER, i);
+                                break;
+                            case 17:
+                                gmvDataIndex.put(MainConstant.VIDEO_VIEWS, i);
+                                break;
+                            case 20:
+                                gmvDataIndex.put(MainConstant.VIDEOS, i);
+                                break;
+                            case 23:
+                                gmvDataIndex.put(MainConstant.COMMISSION, i);
+                                break;
+                            default:
+                                break;
+                        }
+                    }
+                    break;
+                }
+                indexLine++;
+            }
+        } catch (Exception e) {
+            log.error("GET GMV DATA INDEX ERRPR:{}", e.getMessage());
+        }
+    }
+
+
+    /**
+     * multipartFileToFile.
+     *
+     * @param multipartFile
+     * @return
+     */
+    public static File multipartFileToFile(MultipartFile multipartFile) {
+        File file = null;
+        //判断是否为null
+        if (multipartFile == null) {
+            return file;
+        }
+        InputStream ins = null;
+        OutputStream os = null;
+        try {
+            ins = multipartFile.getInputStream();
+            file = new File(multipartFile.getOriginalFilename());
+            os = new FileOutputStream(file);
+            int bytesRead = 0;
+            byte[] buffer = new byte[NumberEnum.EIGHT_ONE_NINE_TWO.getNum()];
+            while ((bytesRead = ins.read(buffer, 0, NumberEnum.EIGHT_ONE_NINE_TWO.getNum())) != -1) {
+                os.write(buffer, 0, bytesRead);
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+        } finally {
+            if (os != null) {
+                try {
+                    os.close();
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }
+            if (ins != null) {
+                try {
+                    ins.close();
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }
+        }
+        return file;
     }
 
 

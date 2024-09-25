@@ -35,7 +35,10 @@ public class VideoDetailModel {
     public String account;
 
     @Column(name = "date")
-    public Long date;
+    public String date;
+
+    @Column(name = "video_name")
+    private String video_name;
 
 
 
@@ -43,20 +46,20 @@ public class VideoDetailModel {
     public String creator;
 
     @Column(name = "product_id")
-    public String pid;
+    public String product_id;
 
 
     @Column(name = "gmv")
-    public String gmv;
+    public Double gmv;
 
     @Column(name = "video_views")
-    public Integer videoViews;
+    public Integer video_views;
 
     @Column(name = "vid")
     public String vid;
 
     @Column(name = "commission")
-    public String commission;
+    public Double commission;
 
     /**
      * 视频链接

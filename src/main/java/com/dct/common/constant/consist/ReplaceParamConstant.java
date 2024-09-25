@@ -73,6 +73,6 @@ public class ReplaceParamConstant {
     public static final String CONNECT_TIME = "connectTime";
     public static final String FLUSH_TIME = "flushTime";
     public static final String PRE_LOAD_COUNT = "preloadCount";
-    public static final String APP_NAME = "appName";
+    public static final String APP_NAME = "account";
     public static final String SPLASH_TIME = "splashTime";
 }

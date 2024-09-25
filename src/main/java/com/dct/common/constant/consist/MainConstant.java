@@ -163,7 +163,7 @@ public class MainConstant {
     /**
      * app report.
      */
-    public static final String APP_NAME = "appName";
+    public static final String APP_NAME = "account";
 
     public static final String FACEBOOK = "facebook";
 
@@ -775,4 +775,18 @@ public class MainConstant {
 
 
     public static final String APPLY_PRODUCT = "apply_product";
+    public static final String CREATOR = "creator";
+    public static final String PID = "pid";
+    public static final String PRODUCT_NAME = "productName";
+    public static final String LEVEL_1_CATEGORY = "level_1_category";
+
+    public static final String LEVEL_2_CATEGORY = "level_2_category";
+
+    public static final String GMV = "gmv";
+    public static final String ORDERS = "order";
+    public static final String VIDEO_VIEWS = "video_views";
+    public static final String VIDEOS = "videos";
+    public static final String COMMISSION = "commission";
+    public static final String VID = "vid";
+    public static final String VIDEO_NAME = "video_name";
 }

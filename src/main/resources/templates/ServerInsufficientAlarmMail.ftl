@@ -16,8 +16,8 @@
                 <#if data?? && data?size != 0>
                     <#list data as info>
                         <tr>
-                            <#if info.appName??>
-                                <td rowspan="${info.rowSpan}" ><b>${info.appName}</b></td>
+                            <#if info.account??>
+                                <td rowspan="${info.rowSpan}" ><b>${info.account}</b></td>
                             <#else>
                             </#if>
 

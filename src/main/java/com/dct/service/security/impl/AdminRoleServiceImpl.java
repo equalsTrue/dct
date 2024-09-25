@@ -195,13 +195,13 @@ public class AdminRoleServiceImpl implements IAdminRoleService {
 
     @Override
     public List<String> queryRoleAppInfo(JSONObject params) {
-        List<String> appNameList = new ArrayList<>();
+        List<String> accountList = new ArrayList<>();
         JSONArray roleArray = params.getJSONArray("role");
         if(roleArray != null && roleArray.size() >0){
             List<String> roleNameList = JSONArray.parseArray(JSON.toJSONString(roleArray),String.class);
             List<String> roleIdList = adminRoleRepo.findRoleIds(roleNameList);
         }
-        return appNameList;
+        return accountList;
     }
 
 

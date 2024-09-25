@@ -81,7 +81,7 @@ public class ProductModel extends EntityStringIdBase {
 
 
     /**
-     * 样品状态(0:已申样，1:申请中 2:拍摄中 3:在库)
+     * 样品状态(0:已申样，1:在库 2:申请中 3:拍摄中 )
      */
     @Column
     private Integer status;

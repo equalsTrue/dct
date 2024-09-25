@@ -90,6 +90,7 @@ public class ProductServiceImpl implements IProductService {
             ProductModel productModel = new ProductModel();
             String productName = params.getString("productName");
             Integer count = params.getInteger("count");
+            Integer status = params.getInteger("status");
             String color = params.getString("color");
             String manager = params.getString("manager");
             String region = params.getString("region");
@@ -99,10 +100,10 @@ public class ProductServiceImpl implements IProductService {
             if(StringUtils.isNotBlank(id)){
                 productModel = productRepo.findById(id).get();
             }else {
-                productModel.setStatus(0);
                 productModel.setOutApply(0);
                 productModel.setIsApproval(0);
             }
+            productModel.setStatus(status);
             productModel.setProductName(productName);
             productModel.setCount(count);
             productModel.setColor(color);
@@ -227,12 +228,23 @@ public class ProductServiceImpl implements IProductService {
                 }
             }
             // 修改为在库状态
-            if(status != null && status == 3){
-                originModel.setCount(originModel.getCount());
-                originModel.setApplyCount(0);
-                originModel.setOutApply(0);
-                originModel.setStatus(3);
-                originModel.setIsApproval(0);
+            if(status != null ){
+                originModel.setStatus(status);
+                if(status == 1){
+                    String pid = originModel.getPid();
+                    String color = originModel.getColor();
+                    List<ProductModel> notApplyModelList = productRepo.findNoApplyModel(pid,color);
+                    //若存在在库状态的产品则需要合并下
+                    if(notApplyModelList != null && notApplyModelList.size() >0){
+                        ProductModel notApplyModel = notApplyModelList.get(0);
+                        originModel.setCount(notApplyModel.getCount() + originModel.getCount());
+                        productRepo.deleteById(notApplyModel.getId());
+                    }
+                    originModel.setCount(originModel.getCount());
+                    originModel.setApplyCount(0);
+                    originModel.setOutApply(0);
+                    originModel.setIsApproval(0);
+                }
                 productRepo.saveAndFlush(originModel);
             }else {
                 productRepo.saveAndFlush(originModel);
@@ -300,7 +312,7 @@ public class ProductServiceImpl implements IProductService {
                     approveModel.setUser(originModel.getUser());
                     approveModel.setIsApproval(1);
                     approveModel.setOutApply(1);
-                    approveModel.setStatus(1);
+                    approveModel.setStatus(2);
                     approveModel.setApplyUser(originModel.getApplyUser());
                     approveModel.setPid(originModel.getPid());
                     approveModel.setColor(originModel.getColor());

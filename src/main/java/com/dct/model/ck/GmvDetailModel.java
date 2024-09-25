@@ -25,10 +25,13 @@ public class GmvDetailModel {
     public String account;
 
     @Column(name = "date")
-    public Long date;
+    public String date;
+
+    @Column(name = "creator")
+    public String creator;
 
     @Column(name = "country")
-    public Long  country;
+    public String  country;
 
     @Column(name = "campaign_id")
     public String campaign_id;
@@ -43,22 +46,22 @@ public class GmvDetailModel {
     public String product_name;
 
     @Column(name = "orders")
-    public String orders;
+    public Integer orders;
 
     @Column(name = "gmv")
-    public String gmv;
+    public Double gmv;
 
     @Column(name = "video_views")
     public Integer video_views;
 
     @Column(name = "videos")
-    public String videos;
+    public Integer videos;
 
     /**
      * 佣金
      */
     @Column(name = "commission")
-    public String commission;
+    public Double commission;
 
     @Column(name = "level_1_category")
     public String level_1_category;
