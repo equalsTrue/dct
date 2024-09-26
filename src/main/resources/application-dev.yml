@@ -18,11 +18,11 @@ spring:
     druid:
       ck:
         driver-class-name: ru.yandex.clickhouse.ClickHouseDriver
-        url: jdbc:clickhouse://hadoop106:8123/default
-        db: ladder
+        url: jdbc:clickhouse://52.221.195.81:8123/default
+        db: default
         socketTimeout: 15000
         username: default
-        password: 12354
+        password: Pt0C5s03
         connection-timeout: 20000
         maximum-pool-size: 10
         jpa:

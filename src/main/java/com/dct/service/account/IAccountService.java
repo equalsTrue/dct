@@ -59,4 +59,5 @@ public interface IAccountService {
     String saveAccount(JSONObject params);
 
     AccountModel fetchAccountModel(String id);
+
 }

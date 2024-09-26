@@ -31,14 +31,18 @@ public class ProductDetailModel {
     @Column(name = "date")
     public Long date;
 
-    @Column(name = "url")
-    private String url;
+    @Column(name = "picture")
+    private String picture;
 
     /**
      * 账号(starp/vista)
      */
     @Column(name = "account")
     public String account;
+
+
+    @Column(name = "product_id")
+    private String product_id;
 
 
 }

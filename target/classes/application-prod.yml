@@ -26,8 +26,8 @@ spring:
     druid:
       ck:
         driver-class-name: ru.yandex.clickhouse.ClickHouseDriver
-        url: jdbc:clickhouse://12.0.2.124:8123/ladder
-        db: ladder
+        url: jdbc:clickhouse://10.0.10.131:8123/default
+        db: default
         socketTimeout: 15000
         username: default
         password: 12354

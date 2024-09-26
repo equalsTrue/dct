@@ -14,8 +14,8 @@
     <#list data as user>
         <tr>
             <td colspan="4" style="text-align:center;vertical-align:middle">
-                <#if user.appName??>
-                    <b>${user.appName}</b>
+                <#if user.account??>
+                    <b>${user.account}</b>
                 <#else>
                     <b>N/A</b>
                 </#if>

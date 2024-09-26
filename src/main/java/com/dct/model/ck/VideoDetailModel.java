@@ -35,7 +35,7 @@ public class VideoDetailModel {
     public String account;
 
     @Column(name = "date")
-    public String date;
+    public Long date;
 
     @Column(name = "video_name")
     private String video_name;

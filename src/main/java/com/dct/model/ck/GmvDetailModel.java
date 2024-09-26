@@ -11,7 +11,7 @@ import java.math.BigDecimal;
  * @Date 2024/5/30 18:32
  */
 @Entity
-@Table(name = "t_gmv_detail")
+@Table(name = "gmv_detail")
 @Data
 public class GmvDetailModel {
     @Id
@@ -25,7 +25,7 @@ public class GmvDetailModel {
     public String account;
 
     @Column(name = "date")
-    public String date;
+    public Long date;
 
     @Column(name = "creator")
     public String creator;
@@ -68,8 +68,5 @@ public class GmvDetailModel {
 
     @Column(name = "level_2_category")
     public String level_2_category;
-
-    @Column(name = "belong_person")
-    public BigDecimal belong_person;
 
 }
