@@ -190,17 +190,24 @@ public class AccountServiceImpl implements IAccountService {
                 return criteriaQuery.getRestriction();
             }
         };
+
         Integer page = params.getInteger("page");
         Integer limit = params.getInteger("limit");
+        Long total = 0L;
         PageVO pageVO = new PageVO();
-        Long total = accountRepo.count(specification);
-        page = page >= 1? page - 1: 0;
-        List<AccountModel> list = accountRepo.findAll(specification, PageRequest.of(page, limit)).getContent();
-        pageVO.setTotal(total);
-        list.stream().forEach(a->{
-            List<String> userGroupList = adminRoleRepo.queryRoleNames(a.getBelongPerson());
-            a.setUserGroup(userGroupList != null && userGroupList.size() > 0  ? userGroupList.get(0) : "");
-        });
+        List<AccountModel> list = new ArrayList<>();
+        if(page == null && limit == null){
+            list = accountRepo.findAll(specification);
+        }else {
+            total = accountRepo.count(specification);
+            page = page >= 1? page - 1: 0;
+            list = accountRepo.findAll(specification, PageRequest.of(page, limit)).getContent();
+            pageVO.setTotal(total);
+            list.stream().forEach(a->{
+                List<String> userGroupList = adminRoleRepo.queryRoleNames(a.getBelongPerson());
+                a.setUserGroup(userGroupList != null && userGroupList.size() > 0  ? userGroupList.get(0) : "");
+            });
+        }
         pageVO.setList(list);
         pageVO.setPage(page);
         pageVO.setTotal(total);

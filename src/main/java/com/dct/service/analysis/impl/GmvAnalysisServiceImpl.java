@@ -45,6 +45,7 @@ import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -153,12 +154,14 @@ public class GmvAnalysisServiceImpl implements IGmvAnalysisService {
         if (groupList.contains("creator")) {
             //补全归属人
             List<AccountModel> accountList = accountRepo.findAll();
-            Map<String, String> accountMap = accountList.stream().collect(Collectors.toMap(k -> k.getCreator(), v -> v.getManager()));
-            gmvList.stream().forEach(a -> {
-                if (accountMap.containsKey(a.getCreator())) {
-                    a.setBelong_person(accountMap.get(a.getCreator()));
-                }
-            });
+            if(accountList != null && accountList.size() > 0){
+                Map<String, String> accountMap = accountList.stream().collect(Collectors.toMap(k -> k.getCreator(), v -> v.getManager()));
+                gmvList.stream().forEach(a -> {
+                    if (accountMap.containsKey(a.getCreator())) {
+                        a.setBelong_person(accountMap.get(a.getCreator()));
+                    }
+                });
+            }
         }
         List<GmvDetailVo> addVideoList = new ArrayList<>();
         if (groupList.contains("day")) {
@@ -175,7 +178,7 @@ public class GmvAnalysisServiceImpl implements IGmvAnalysisService {
         List<String> userList = new ArrayList<>();
         List<String> userGroupList = new ArrayList<>();
         List<Integer> statusList = new ArrayList<>();
-        List<String> keyList = (List<String>) whereParam.keySet();
+        List<String> keyList = whereParam.keySet().stream().collect(Collectors.toList());
         for(String keyStr : keyList){
             if(keyStr.equals("user")){
                 userList = JSONObject.parseArray(whereParam.getJSONArray(keyStr).toJSONString(), String.class);
@@ -216,7 +219,6 @@ public class GmvAnalysisServiceImpl implements IGmvAnalysisService {
                     }
                 } else {
                     if (filters.size() > 0) {
-                        whereStr.append(" AND ");
                         whereStr.append(keyStr + " in(");
                         for (int i = 0; i < filters.size(); i++) {
                             if (i == filters.size() - 1) {
