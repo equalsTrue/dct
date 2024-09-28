@@ -13,9 +13,7 @@ if [ $1 = "prod" ]; then
   sudo chmod 600 ${SOURCE_PATH}/jmxremote.access
   sudo chmod 600 ${SOURCE_PATH}/jmxremote.password
   public_IP=$(ec2metadata |grep public-ipv4|cut -d ':' -f2|sed 's/ //g')
-  nohup java -server  -Dcom.sun.management.jmxremote.access.file=${SOURCE_PATH}/jmxremote.access -Dcom.sun.management.jmxremote.password.file=${SOURCE_PATH}/jmxremote.password -Djava.rmi.server.hostname=${public_IP} -Dcom.sun.management.jmxremote.rmi.port=6011 -Dcom.sun.management.jmxremote.authenticate=true  -Dcom.sun.management.jmxremote.ssl=false -Dcom.sun.management.jmxremote.port=6011 -jar  $DIR"/../"target/dct-0.0.1-SNAPSHOT.jar --spring.profiles.active=prod --server.port=8080 >/dev/null 2>&1 &
 elif [ $1 = "dev" ]; then
-    nohup java -jar -Daws.access_key=AKIAR4P3KED23DWXT4PT -Daws.secret_access_key=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 $DIR"/../"target/dct-0.0.1-SNAPSHOT.jar --spring.profiles.active=dev --server.port=8688 >/dev/null 2>&1 &
 fi
 
 if [ $? -eq 0 ]; then
