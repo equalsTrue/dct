@@ -9,7 +9,7 @@
         <relativePath/>
     </parent>
     <groupId>dct</groupId>
-    <artifactId>dctManager</artifactId>
+    <artifactId>dct</artifactId>
     <version>0.0.1-SNAPSHOT</version>
     <name>dct</name>
     <description>dct</description>
@@ -72,6 +72,14 @@
             <artifactId>clickhouse-jdbc</artifactId>
             <version>0.3.2</version>
         </dependency>
+
+        <!--clickhouse-->
+        <dependency>
+            <groupId>com.clickhouse</groupId>
+            <artifactId>clickhouse-jdbc</artifactId>
+            <version>0.3.2-patch8</version>
+        </dependency>
+
 
 
         <dependency>

@@ -439,7 +439,7 @@ public class DateUtil {
      */
     public static long parseDayByDayFormat(String str) {
         try {
-            return new SimpleDateFormat(DAY_FORMAT).parse(str).getTime();
+            return new SimpleDateFormat(DF).parse(str).getTime();
         } catch (Exception ex) {
             return 0L;
         }

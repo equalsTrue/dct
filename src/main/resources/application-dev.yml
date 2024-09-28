@@ -18,7 +18,7 @@ spring:
     druid:
       ck:
         driver-class-name: ru.yandex.clickhouse.ClickHouseDriver
-        url: jdbc:clickhouse://52.221.195.81:8123/default
+        url: jdbc:clickhouse://52.77.224.25:8123/default
         db: default
         socketTimeout: 15000
         username: default

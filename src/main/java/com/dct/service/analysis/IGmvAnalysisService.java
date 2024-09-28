@@ -48,7 +48,7 @@ public interface IGmvAnalysisService {
      * 查询PID参数
      * @return
      */
-    JSONObject fetchQueryPidListParams();
+    JSONObject fetchQueryPidListParams(String creator);
 
     /**
      * 查询creator参数

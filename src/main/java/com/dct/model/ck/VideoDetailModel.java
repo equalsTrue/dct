@@ -37,11 +37,6 @@ public class VideoDetailModel {
     @Column(name = "date")
     public Long date;
 
-    @Column(name = "video_name")
-    private String video_name;
-
-
-
     @Column
     public String creator;
 
@@ -60,6 +55,7 @@ public class VideoDetailModel {
 
     @Column(name = "commission")
     public Double commission;
+
 
     /**
      * 视频链接

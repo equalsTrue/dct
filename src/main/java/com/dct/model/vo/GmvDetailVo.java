@@ -34,7 +34,7 @@ public class GmvDetailVo {
 
     public String campaign_name;
 
-    public String pid;
+    public String product_id;
 
     public String product_name;
 
@@ -48,13 +48,17 @@ public class GmvDetailVo {
 
     public Integer videos;
 
-    public String commission;
+    public String creator_commission;
+
+    public String partner_commission;
 
     public String level_1_category;
 
     public String level_2_category;
 
     public String belong_person;
+
+    public String userGroup;
 
     public Integer addVideos;
 

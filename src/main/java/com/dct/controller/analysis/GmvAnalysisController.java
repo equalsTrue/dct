@@ -85,9 +85,10 @@ public class GmvAnalysisController {
      * @return
      */
     @GetMapping("/gmv/pid/list/params")
-    public ResponseInfoVO fetchPidListParams(){
-        return ResponseInfoUtil.success(gmvAnalysisService.fetchQueryPidListParams());
+    public ResponseInfoVO fetchPidListParams(@RequestParam(required = false) String creator){
+        return ResponseInfoUtil.success(gmvAnalysisService.fetchQueryPidListParams(creator));
     }
+
 
     /**
      * 查询creator 列表参数
@@ -110,8 +111,8 @@ public class GmvAnalysisController {
      * @return
      */
     @PostMapping(value = "gmv/file/submit", headers = "content-type=multipart/form-data")
-    public ResponseInfoVO saveReport(@RequestParam List<MultipartFile> gmvFiles, @RequestParam("vidFiles") List<MultipartFile> vidFiles,
-                                     @RequestParam("pidFiles") List<MultipartFile> pidFiles,@RequestParam("creatorFiles") List<MultipartFile> creatorFiles,
+    public ResponseInfoVO saveReport(@RequestParam("gmvFile") List<MultipartFile> gmvFiles, @RequestParam("vidFile") List<MultipartFile> vidFiles,
+                                     @RequestParam("pidFile") List<MultipartFile> pidFiles,@RequestParam("creatorFile") List<MultipartFile> creatorFiles,
                                      @RequestParam("account") List<String> accounts, @RequestParam("times") List<String> times,
                                      @RequestParam("country") List<String> countries) {
         try {

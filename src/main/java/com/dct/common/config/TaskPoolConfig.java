@@ -1,5 +1,6 @@
 package com.dct.common.config;
 
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.scheduling.annotation.EnableAsync;
@@ -12,13 +13,13 @@ import java.util.concurrent.ThreadPoolExecutor;
  * 线程池配置.
  * @author david
  */
-@EnableAsync
 @Configuration
 public class TaskPoolConfig {
-    @Bean("taskExecutor")
+    @Bean
+    @Qualifier(value = "taskExecutor")
     public Executor taskExecutor() {
         ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();
-        executor.setCorePoolSize(50);
+        executor.setCorePoolSize(100);
         executor.setMaxPoolSize(200);
         executor.setQueueCapacity(500);
         executor.setKeepAliveSeconds(60 * 5);

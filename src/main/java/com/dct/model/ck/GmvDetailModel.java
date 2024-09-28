@@ -57,11 +57,14 @@ public class GmvDetailModel {
     @Column(name = "videos")
     public Integer videos;
 
-    /**
-     * 佣金
-     */
-    @Column(name = "commission")
-    public Double commission;
+
+    @Column(name = "creator_commission")
+    public Double creator_commission;
+
+
+
+    @Column(name = "partner_commission")
+    public Double partner_commission;
 
     @Column(name = "level_1_category")
     public String level_1_category;

@@ -33,6 +33,12 @@
       "type": "org.springframework.boot.autoconfigure.jdbc.DataSourceProperties$Xa",
       "sourceType": "org.springframework.boot.autoconfigure.jdbc.DataSourceProperties",
       "sourceMethod": "getXa()"
+    },
+    {
+      "name": "spring.datasource.druid.dct.xa",
+      "type": "org.springframework.boot.autoconfigure.jdbc.DataSourceProperties$Xa",
+      "sourceType": "org.springframework.boot.autoconfigure.jdbc.DataSourceProperties",
+      "sourceMethod": "getXa()"
     }
   ],
   "properties": [
@@ -102,12 +108,32 @@
       "sourceType": "org.springframework.boot.autoconfigure.jdbc.DataSourceProperties"
     },
     {
+      "name": "spring.datasource.druid.dct.continue-on-error",
+      "type": "java.lang.Boolean",
+      "sourceType": "org.springframework.boot.autoconfigure.jdbc.DataSourceProperties"
+    },
+    {
+      "name": "spring.datasource.druid.dct.data",
+      "type": "java.util.List<java.lang.String>",
+      "sourceType": "org.springframework.boot.autoconfigure.jdbc.DataSourceProperties"
+    },
+    {
       "name": "spring.datasource.druid.dct.data",
       "type": "java.util.List<java.lang.String>",
       "sourceType": "org.springframework.boot.autoconfigure.jdbc.DataSourceProperties"
     },
     {
       "name": "spring.datasource.druid.dct.data-password",
+      "type": "java.lang.String",
+      "sourceType": "org.springframework.boot.autoconfigure.jdbc.DataSourceProperties"
+    },
+    {
+      "name": "spring.datasource.druid.dct.data-password",
+      "type": "java.lang.String",
+      "sourceType": "org.springframework.boot.autoconfigure.jdbc.DataSourceProperties"
+    },
+    {
+      "name": "spring.datasource.druid.dct.data-username",
       "type": "java.lang.String",
       "sourceType": "org.springframework.boot.autoconfigure.jdbc.DataSourceProperties"
     },
@@ -122,8 +148,23 @@
       "sourceType": "org.springframework.boot.autoconfigure.jdbc.DataSourceProperties"
     },
     {
+      "name": "spring.datasource.druid.dct.driver-class-name",
+      "type": "java.lang.String",
+      "sourceType": "org.springframework.boot.autoconfigure.jdbc.DataSourceProperties"
+    },
+    {
       "name": "spring.datasource.druid.dct.generate-unique-name",
       "type": "java.lang.Boolean",
+      "sourceType": "org.springframework.boot.autoconfigure.jdbc.DataSourceProperties"
+    },
+    {
+      "name": "spring.datasource.druid.dct.generate-unique-name",
+      "type": "java.lang.Boolean",
+      "sourceType": "org.springframework.boot.autoconfigure.jdbc.DataSourceProperties"
+    },
+    {
+      "name": "spring.datasource.druid.dct.initialization-mode",
+      "type": "org.springframework.boot.jdbc.DataSourceInitializationMode",
       "sourceType": "org.springframework.boot.autoconfigure.jdbc.DataSourceProperties"
     },
     {
@@ -137,8 +178,23 @@
       "sourceType": "org.springframework.boot.autoconfigure.jdbc.DataSourceProperties"
     },
     {
+      "name": "spring.datasource.druid.dct.jndi-name",
+      "type": "java.lang.String",
+      "sourceType": "org.springframework.boot.autoconfigure.jdbc.DataSourceProperties"
+    },
+    {
       "name": "spring.datasource.druid.dct.jpa.database",
       "type": "org.springframework.orm.jpa.vendor.Database",
+      "sourceType": "org.springframework.boot.autoconfigure.orm.jpa.JpaProperties"
+    },
+    {
+      "name": "spring.datasource.druid.dct.jpa.database",
+      "type": "org.springframework.orm.jpa.vendor.Database",
+      "sourceType": "org.springframework.boot.autoconfigure.orm.jpa.JpaProperties"
+    },
+    {
+      "name": "spring.datasource.druid.dct.jpa.database-platform",
+      "type": "java.lang.String",
       "sourceType": "org.springframework.boot.autoconfigure.orm.jpa.JpaProperties"
     },
     {
@@ -152,8 +208,23 @@
       "sourceType": "org.springframework.boot.autoconfigure.orm.jpa.JpaProperties"
     },
     {
+      "name": "spring.datasource.druid.dct.jpa.generate-ddl",
+      "type": "java.lang.Boolean",
+      "sourceType": "org.springframework.boot.autoconfigure.orm.jpa.JpaProperties"
+    },
+    {
       "name": "spring.datasource.druid.dct.jpa.mapping-resources",
       "type": "java.util.List<java.lang.String>",
+      "sourceType": "org.springframework.boot.autoconfigure.orm.jpa.JpaProperties"
+    },
+    {
+      "name": "spring.datasource.druid.dct.jpa.mapping-resources",
+      "type": "java.util.List<java.lang.String>",
+      "sourceType": "org.springframework.boot.autoconfigure.orm.jpa.JpaProperties"
+    },
+    {
+      "name": "spring.datasource.druid.dct.jpa.open-in-view",
+      "type": "java.lang.Boolean",
       "sourceType": "org.springframework.boot.autoconfigure.orm.jpa.JpaProperties"
     },
     {
@@ -167,12 +238,32 @@
       "sourceType": "org.springframework.boot.autoconfigure.orm.jpa.JpaProperties"
     },
     {
+      "name": "spring.datasource.druid.dct.jpa.properties",
+      "type": "java.util.Map<java.lang.String,java.lang.String>",
+      "sourceType": "org.springframework.boot.autoconfigure.orm.jpa.JpaProperties"
+    },
+    {
+      "name": "spring.datasource.druid.dct.jpa.show-sql",
+      "type": "java.lang.Boolean",
+      "sourceType": "org.springframework.boot.autoconfigure.orm.jpa.JpaProperties"
+    },
+    {
       "name": "spring.datasource.druid.dct.jpa.show-sql",
       "type": "java.lang.Boolean",
       "sourceType": "org.springframework.boot.autoconfigure.orm.jpa.JpaProperties"
     },
     {
       "name": "spring.datasource.druid.dct.name",
+      "type": "java.lang.String",
+      "sourceType": "org.springframework.boot.autoconfigure.jdbc.DataSourceProperties"
+    },
+    {
+      "name": "spring.datasource.druid.dct.name",
+      "type": "java.lang.String",
+      "sourceType": "org.springframework.boot.autoconfigure.jdbc.DataSourceProperties"
+    },
+    {
+      "name": "spring.datasource.druid.dct.password",
       "type": "java.lang.String",
       "sourceType": "org.springframework.boot.autoconfigure.jdbc.DataSourceProperties"
     },
@@ -187,12 +278,32 @@
       "sourceType": "org.springframework.boot.autoconfigure.jdbc.DataSourceProperties"
     },
     {
+      "name": "spring.datasource.druid.dct.platform",
+      "type": "java.lang.String",
+      "sourceType": "org.springframework.boot.autoconfigure.jdbc.DataSourceProperties"
+    },
+    {
+      "name": "spring.datasource.druid.dct.schema",
+      "type": "java.util.List<java.lang.String>",
+      "sourceType": "org.springframework.boot.autoconfigure.jdbc.DataSourceProperties"
+    },
+    {
       "name": "spring.datasource.druid.dct.schema",
       "type": "java.util.List<java.lang.String>",
       "sourceType": "org.springframework.boot.autoconfigure.jdbc.DataSourceProperties"
     },
     {
       "name": "spring.datasource.druid.dct.schema-password",
+      "type": "java.lang.String",
+      "sourceType": "org.springframework.boot.autoconfigure.jdbc.DataSourceProperties"
+    },
+    {
+      "name": "spring.datasource.druid.dct.schema-password",
+      "type": "java.lang.String",
+      "sourceType": "org.springframework.boot.autoconfigure.jdbc.DataSourceProperties"
+    },
+    {
+      "name": "spring.datasource.druid.dct.schema-username",
       "type": "java.lang.String",
       "sourceType": "org.springframework.boot.autoconfigure.jdbc.DataSourceProperties"
     },
@@ -207,8 +318,23 @@
       "sourceType": "org.springframework.boot.autoconfigure.jdbc.DataSourceProperties"
     },
     {
+      "name": "spring.datasource.druid.dct.separator",
+      "type": "java.lang.String",
+      "sourceType": "org.springframework.boot.autoconfigure.jdbc.DataSourceProperties"
+    },
+    {
       "name": "spring.datasource.druid.dct.sql-script-encoding",
       "type": "java.nio.charset.Charset",
+      "sourceType": "org.springframework.boot.autoconfigure.jdbc.DataSourceProperties"
+    },
+    {
+      "name": "spring.datasource.druid.dct.sql-script-encoding",
+      "type": "java.nio.charset.Charset",
+      "sourceType": "org.springframework.boot.autoconfigure.jdbc.DataSourceProperties"
+    },
+    {
+      "name": "spring.datasource.druid.dct.type",
+      "type": "java.lang.Class<? extends javax.sql.DataSource>",
       "sourceType": "org.springframework.boot.autoconfigure.jdbc.DataSourceProperties"
     },
     {
@@ -222,6 +348,16 @@
       "sourceType": "org.springframework.boot.autoconfigure.jdbc.DataSourceProperties"
     },
     {
+      "name": "spring.datasource.druid.dct.url",
+      "type": "java.lang.String",
+      "sourceType": "org.springframework.boot.autoconfigure.jdbc.DataSourceProperties"
+    },
+    {
+      "name": "spring.datasource.druid.dct.username",
+      "type": "java.lang.String",
+      "sourceType": "org.springframework.boot.autoconfigure.jdbc.DataSourceProperties"
+    },
+    {
       "name": "spring.datasource.druid.dct.username",
       "type": "java.lang.String",
       "sourceType": "org.springframework.boot.autoconfigure.jdbc.DataSourceProperties"
@@ -229,6 +365,16 @@
     {
       "name": "spring.datasource.druid.dct.xa.data-source-class-name",
       "type": "java.lang.String",
+      "sourceType": "org.springframework.boot.autoconfigure.jdbc.DataSourceProperties$Xa"
+    },
+    {
+      "name": "spring.datasource.druid.dct.xa.data-source-class-name",
+      "type": "java.lang.String",
+      "sourceType": "org.springframework.boot.autoconfigure.jdbc.DataSourceProperties$Xa"
+    },
+    {
+      "name": "spring.datasource.druid.dct.xa.properties",
+      "type": "java.util.Map<java.lang.String,java.lang.String>",
       "sourceType": "org.springframework.boot.autoconfigure.jdbc.DataSourceProperties$Xa"
     },
     {
