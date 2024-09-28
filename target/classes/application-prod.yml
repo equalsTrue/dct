@@ -30,7 +30,7 @@ spring:
         db: default
         socketTimeout: 15000
         username: default
-        password: 12354
+        password: Pt0C5s03
         connection-timeout: 20000
         maximum-pool-size: 10
         jpa:
@@ -39,9 +39,9 @@ spring:
       #------------druid 多数据源 --------------
       dct:
         driver-class-name: com.mysql.cj.jdbc.Driver
-        url: jdbc:mysql://ssp-de-rds-001.ca4bdwrmvaiv.eu-central-1.rds.amazonaws.com:3306/flydctdb?useUnicode=true&characterEncoding=utf8&useSSL=false&serverTimezone=UTC&autoReconnect=true&tinyInt1isBit=false
+        url: jdbc:mysql://10.0.10.131/dctdb?useUnicode=true&characterEncoding=utf8&useSSL=false&serverTimezone=UTC&autoReconnect=true&tinyInt1isBit=false
         username: product
-        password: CDNmipLMwe18kLwckMHL
+        password: majppQL9g1230Hf5kTWKpEn
         initialSize: 10
         maxActive: 80
         min-idle: 10
