@@ -39,7 +39,7 @@ spring:
       #------------druid 多数据源 --------------
       dct:
         driver-class-name: com.mysql.cj.jdbc.Driver
-        url: jdbc:mysql://10.0.10.131:3306/dctdb?useUnicode=true&characterEncoding=utf8&useSSL=false&serverTimezone=UTC&autoReconnect=true&tinyInt1isBit=false
+        url: jdbc:mysql://10.0.10.131:3306/dctdb?useUnicode=true&characterEncoding=utf8&useSSL=false&serverTimezone=UTC&autoReconnect=true&tinyInt1isBit=false&allowPublicKeyRetrieval=true
         username: product
         password: majppQL9g1230Hf5kTWKpEn
         initialSize: 10
