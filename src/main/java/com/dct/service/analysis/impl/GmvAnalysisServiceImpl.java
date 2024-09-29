@@ -68,7 +68,7 @@ import java.util.stream.Collectors;
  */
 @Service
 @Slf4j
-public class GmvAnalysisServiceImpl implements IGmvAnalysisService {
+        public class GmvAnalysisServiceImpl implements IGmvAnalysisService {
 
     @Autowired
     private AccountRepo accountRepo;
@@ -805,6 +805,21 @@ public class GmvAnalysisServiceImpl implements IGmvAnalysisService {
         }
         if(creatorFile != null){
             handleCreatorFile(creatorFile,account,time,country);
+        }
+    }
+
+    @Override
+    public void fetchGmvFile() {
+        String path = "";
+        InputStreamReader inputStreamReader = null;
+        BufferedReader bufferedReader = null;
+        try {
+            File gmvFile = new File(path + "/gmv.csv");
+            File vidFile = new File(path + "/vid.csv");
+            importCsvFile(gmvFile,"","","gmv","");
+            importCsvFile(vidFile,"","","vid","");
+        }catch (Exception e){
+
         }
     }
 

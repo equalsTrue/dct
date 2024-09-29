@@ -154,4 +154,14 @@ public class GmvAnalysisController {
         return ResponseInfoUtil.success();
     }
 
+    /**
+     * 拉取文件.
+     * @return
+     */
+    @GetMapping("/fetch/file")
+    public ResponseInfoVO fetchGmvFile(){
+        gmvAnalysisService.fetchGmvFile();
+        return ResponseInfoUtil.success();
+    }
+
 }

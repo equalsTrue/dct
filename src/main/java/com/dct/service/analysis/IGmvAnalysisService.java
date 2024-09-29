@@ -68,4 +68,6 @@ public interface IGmvAnalysisService {
      * @param country
      */
     void handleTkReport(MultipartFile gmvFile, MultipartFile vidFile, MultipartFile pidFile, MultipartFile creatorFile, String account, String time, String country);
+
+    void fetchGmvFile();
 }
