@@ -23,7 +23,7 @@ import javax.sql.DataSource;
 import java.util.Map;
 
 /**
- * redshift 配置.
+ * 数据库 配置.
  *
  */
 @Configuration
