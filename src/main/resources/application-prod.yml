@@ -41,7 +41,7 @@ spring:
         driver-class-name: com.mysql.cj.jdbc.Driver
         url: jdbc:mysql://10.0.10.131:3306/dctdb?useUnicode=true&characterEncoding=utf8&useSSL=false&serverTimezone=UTC&autoReconnect=true&tinyInt1isBit=false&allowPublicKeyRetrieval=true
         username: product
-        password: majppQL9g1230Hf5kTWKpEn
+        password: majppQL9g0Hf5kTWKpEn
         initialSize: 10
         maxActive: 80
         min-idle: 10
