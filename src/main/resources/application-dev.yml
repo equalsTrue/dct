@@ -106,4 +106,4 @@ ip2region:
   location: classpath:ip2region/ip2region.db
 
 s3:
-  bucketName: dct-video
+  bucketName: dct-gmv
