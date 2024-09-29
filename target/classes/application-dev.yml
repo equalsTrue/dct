@@ -31,9 +31,9 @@ spring:
       #------------druid 多数据源 --------------
       dct:
         driver-class-name: com.mysql.cj.jdbc.Driver
-        url: jdbc:mysql://127.0.0.1:3306/dct?useUnicode=true&characterEncoding=utf8&useSSL=false&serverTimezone=UTC&autoReconnect=true&tinyInt1isBit=false&allowPublicKeyRetrieval=true
+        url: jdbc:mysql://52.77.224.25:3306/dctdb?useUnicode=true&characterEncoding=utf8&useSSL=false&serverTimezone=UTC&autoReconnect=true&tinyInt1isBit=false
         username: root
-        password: 12354
+        password: majppQL9g0Hf5kTWKpEn
         initialSize: 10
         maxActive: 80
         min-idle: 10
@@ -106,4 +106,4 @@ ip2region:
   location: classpath:ip2region/ip2region.db
 
 s3:
-  bucketName: dct-video
+  bucketName: dct-gmv
