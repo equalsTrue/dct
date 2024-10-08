@@ -46,6 +46,9 @@ public class GmvDetailVo {
 
     public Integer video_views;
 
+    /**
+     * 活跃视频数量
+     */
     public Integer videos;
 
     public String creator_commission;
@@ -60,6 +63,9 @@ public class GmvDetailVo {
 
     public String userGroup;
 
+    /**
+     *  新增视频数量
+     */
     public Integer addVideos;
 
 

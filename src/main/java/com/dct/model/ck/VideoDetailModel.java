@@ -56,6 +56,9 @@ public class VideoDetailModel {
     @Column(name = "commission")
     public Double commission;
 
+    @Column(name = "postTime")
+    public Long postTime;
+
 
     /**
      * 视频链接

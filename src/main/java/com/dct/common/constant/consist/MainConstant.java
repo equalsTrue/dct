@@ -791,4 +791,5 @@ public class MainConstant {
     public static final String VIDEO_NAME = "video_name";
     public static final String PARTNER_COMMISSION = "partner_commission";
     public static final String CREATOR_COMMISSION = "creator_commission";
+    public static final String POST_TIME = "postTime";
 }

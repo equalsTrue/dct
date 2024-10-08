@@ -204,10 +204,7 @@ import java.util.stream.Collectors;
                 });
             }
         }
-        List<GmvDetailVo> addVideoList = new ArrayList<>();
-        if (groupList.contains("day")) {
-            addVideoList = generateAddVideoList(groupList, whereParam);
-        }
+        List<GmvDetailVo> addVideoList = generateAddVideoList(groupList, whereParam);
         formatIndexAndVideoAdd(gmvList, gmvIndexList, addVideoList, groupList);
         PageVO pageVO = new PageVO();
         pageVO.setList(gmvList);
@@ -349,13 +346,6 @@ import java.util.stream.Collectors;
 
     private List<GmvDetailVo> generateAddVideoList(List<String> groupList, JSONObject whereParam) {
         List<String> timeList = JSONObject.parseArray(whereParam.getJSONArray("time").toJSONString(), String.class);
-        List<String> beforeTimeList = new ArrayList<>();
-        int dayCount = DateUtil.subData1toData2FormatDay(timeList.get(0), timeList.get(1));
-        if(dayCount == 0){
-            dayCount = 1;
-        }
-        beforeTimeList.add(DateUtil.addTime(timeList.get(0), "D", -dayCount));
-        beforeTimeList.add(timeList.get(1));
         StringBuffer sql = new StringBuffer();
         sql.append(" SELECT sum(videos)as videos,toDate(date)AS day,");
         if (groupList.contains("product_id")) {
@@ -363,8 +353,8 @@ import java.util.stream.Collectors;
         } else {
             sql.append("creator");
         }
-        sql.append(" FROM gmv_detail ");
-        sql.append("toDateTime(date, 'Asia/Shanghai')>='" + beforeTimeList.get(0) + "' and toDateTime(date, 'Asia/Shanghai')<='" + beforeTimeList.get(1));
+        sql.append(" FROM video_detail ");
+        sql.append("toDateTime(post_time, 'Asia/Shanghai')>='" + timeList.get(0) + "' and toDateTime(post_time, 'Asia/Shanghai')<='" + timeList.get(1));
         if (groupList.contains("product_id")) {
             sql.append(" GROUP BY product_id");
         } else {
@@ -527,12 +517,17 @@ import java.util.stream.Collectors;
         });
         List<GmvDetailVo> gmvList = JSONObject.parseArray(JSON.toJSONString(jsonObjectList), GmvDetailVo.class);
         List<AccountModel> accountList = accountRepo.findAll();
-        Map<String, String> accountMap = accountList.stream().collect(Collectors.toMap(k -> k.getCreator(), v -> v.getManager()));
-        gmvList.stream().forEach(a -> {
-            if (accountMap.containsKey(a.getCreator())) {
-                a.setBelong_person(accountMap.get(a.getCreator()));
-            }
-        });
+        if(accountList != null && accountList.size() >0){
+            Map<String, String> accountMap = accountList.stream().collect(Collectors.toMap(k -> k.getCreator(), v -> StringUtils.isNotBlank(v.getManager()) ? v.getManager() : "" ));
+            gmvList.stream().forEach(a -> {
+                if (accountMap.containsKey(a.getCreator())) {
+                    a.setBelong_person(accountMap.get(a.getCreator()));
+                }
+            });
+        }
+        List<GmvDetailVo> addVideoList = generateSingleVideoList(whereParam);
+        combineAddVideoList(gmvList,addVideoList,groupList);
+
 //        gmvList.stream().forEach(a->{
 //            String key = a.getDate() + "_" + a.getCreator() + "_" + a.getProduct_id();
 //            Integer index = gmvIndexMap.get(key) + 1;
@@ -542,6 +537,65 @@ import java.util.stream.Collectors;
         pageVO.setList(gmvList);
         pageQueryVo.setPageVO(pageVO);
         return pageQueryVo;
+    }
+
+    private void combineAddVideoList(List<GmvDetailVo> gmvList, List<GmvDetailVo> addVideoList, List<String> groupList) {
+        Map<String,Integer> addVideoMap = new HashMap<>();
+        addVideoList.stream().forEach(a->{
+            String date = a.getDate();
+            String pid = a.getProduct_id();
+            String creator = a.getCreator();
+            StringBuffer keyBuffer = new StringBuffer();
+            keyBuffer.append(date);
+            keyBuffer.append("_");
+            if (groupList.contains("pid")) {
+                keyBuffer.append(pid);
+            } else {
+                keyBuffer.append(creator);
+            }
+            addVideoMap.put(keyBuffer.toString(), a.getVideos());
+        });
+        gmvList.stream().forEach(a->{
+            String pid = a.getProduct_id();
+            String creator = a.getCreator();
+            String key = "";
+            StringBuffer videoBuffer = new StringBuffer();
+            if (StringUtils.isNotBlank(pid)) {
+                key = pid;
+            } else {
+                key = creator;
+            }
+            String day = a.getDate();
+            videoBuffer.append(day + "_");
+            videoBuffer.append(key);
+            Integer addViewCount = addVideoMap.get(videoBuffer.toString());
+            a.setAddVideos(addViewCount);
+        });
+    }
+
+    private List<GmvDetailVo> generateSingleVideoList(JSONObject whereParam) {
+        List<String> timeList = JSONObject.parseArray(whereParam.getJSONArray("time").toJSONString(), String.class);
+        List<String> creatorList = JSONObject.parseArray(whereParam.getJSONArray("creator").toJSONString(), String.class);
+        List<String> pidList = JSONObject.parseArray(whereParam.getJSONArray("pid").toJSONString(), String.class);
+        StringBuffer sql = new StringBuffer();
+        sql.append(" SELECT sum(videos)as videos,toDate(date)AS day,product_id,creator");
+        sql.append(" FROM video_detail");
+        sql.append(" toDateTime(post_time, 'Asia/Shanghai')>='" + timeList.get(0) + "' and toDateTime(post_time, 'Asia/Shanghai')<='" + timeList.get(1));
+        sql.append(" AND product_id = '" + pidList.get(0) + "' AND creator = '" + creatorList.get(0) + "'");
+        sql.append(" GROUP BY day,product_id,creator");
+        List<Map<String, String>> results = generateQueryResult(sql);
+        List<JSONObject> jsonObjectList = new ArrayList<>();
+        results.stream().forEach(a -> {
+            JSONObject jsonObject = new JSONObject();
+            a.entrySet().stream().forEach(b -> {
+                String key = b.getKey();
+                String value = b.getValue();
+                jsonObject.put(key, value);
+            });
+            jsonObjectList.add(jsonObject);
+        });
+        List<GmvDetailVo> videoAddList = JSONObject.parseArray(JSON.toJSONString(jsonObjectList), GmvDetailVo.class);
+        return videoAddList;
     }
 
     private Map<String,Integer> generatePerGvmIndex(List<String> groupList, JSONObject whereParam) {
@@ -629,6 +683,8 @@ import java.util.stream.Collectors;
             jsonObjectList.add(jsonObject);
         });
         List<GmvDetailVo> gmvList = JSONObject.parseArray(JSON.toJSONString(jsonObjectList), GmvDetailVo.class);
+        List<GmvDetailVo> addVideoList = generateSingleVideoList(whereParam);
+        combineAddVideoList(gmvList,addVideoList,groupList);
 //        for(GmvDetailVo gmvDetailVo : gmvList){
 //            String finalCreator = StringUtils.isNotBlank(gmvDetailVo.getCreator()) ? gmvDetailVo.getCreator() : creator;
 //            String finalPid = StringUtils.isNotBlank(gmvDetailVo.getProduct_id()) ? gmvDetailVo.getProduct_id() : pid;
@@ -654,12 +710,20 @@ import java.util.stream.Collectors;
         String pid = params.getString("pid");
         String creator = params.getString("creator");
         JSONArray time = params.getJSONArray("time");
+        JSONArray postTime = params.getJSONArray("postTime");
         List<String> timeList = JSONArray.parseArray(JSON.toJSONString(time), String.class);
+        List<String> postTimeList = JSONArray.parseArray(JSON.toJSONString(time), String.class);
+        if(postTimeList == null || postTimeList.size() == 0 ){
+            postTimeList = timeList;
+        }
         List<VideoDetailVo> videoGmvIndexList = generateVideoIndex(pid,creator,timeList);
         StringBuffer sql = new StringBuffer();
         sql.append("SELECT vid,url,sum(video_views)as video_views,sum(gmv)as gmv,toDate(date)AS day");
         sql.append(" FROM video_detail ");
         sql.append(" where toDateTime(date, 'Asia/Shanghai')>='" + timeList.get(0) + "' and toDateTime(date, 'Asia/Shanghai')<='" + timeList.get(1) + "' AND ");
+        if(postTimeList != null && postTimeList.size() > 0 ){
+            sql.append("  toDateTime(postTime, 'Asia/Shanghai')>='" + postTimeList.get(0) + "' and toDateTime(postTime, 'Asia/Shanghai')<='" + postTimeList.get(1) + "' AND ");
+        }
         if(StringUtils.isNotBlank(creator) && StringUtils.isNotBlank(pid)){
             sql.append(" product_id = '" + pid + "'");
             sql.append(" AND ");
@@ -935,6 +999,7 @@ import java.util.stream.Collectors;
                     String product_id = item[vidDataIndex.get(MainConstant.PID)];
                     String vid = item[vidDataIndex.get(MainConstant.VID)];
                     String date = item[vidDataIndex.get(MainConstant.DATE)];
+                    String postTime = item[vidDataIndex.get(MainConstant.POST_TIME)];
                     double gmv = Double.valueOf(generateFormatValue(item[vidDataIndex.get(MainConstant.GMV)]));
                     Integer video_views = Integer.valueOf(generateFormatValue(item[vidDataIndex.get(MainConstant.VIDEO_VIEWS)]));
                     double commission = Double.valueOf(generateFormatValue(item[vidDataIndex.get(MainConstant.COMMISSION)]));
@@ -944,6 +1009,7 @@ import java.util.stream.Collectors;
                     model.setProduct_id(product_id);
                     model.setGmv(gmv);
                     model.setVid(vid);
+                    model.setPostTime(Long.valueOf(DateUtil.parseTimeByDayFormat(postTime.substring(0,10) + " 10:00:00")));
                     model.setVideo_views(video_views);
                     model.setCommission(commission);
                     String url = "http://www.tiktok.com/@handle/video/" + vid;
@@ -982,6 +1048,9 @@ import java.util.stream.Collectors;
                                 break;
                             case 5:
                                 vidDataIndex.put(MainConstant.VID, i);
+                                break;
+                            case 6:
+                                vidDataIndex.put(MainConstant.POST_TIME, i);
                                 break;
                             case 7:
                                 vidDataIndex.put(MainConstant.PID, i);
