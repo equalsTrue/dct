@@ -212,7 +212,8 @@ public class GmvAnalysisServiceImpl implements IGmvAnalysisService {
             });
         }
         List<GmvDetailVo> addVideoList = generateAddVideoList(groupList, whereParam);
-        formatIndexAndVideoAdd(gmvList, gmvIndexList, addVideoList, groupList);
+        List<GmvDetailVo> videoList = generateVideoList(groupList, whereParam);
+        formatIndexAndVideoAdd(gmvList, gmvIndexList, addVideoList,videoList, groupList);
         PageVO pageVO = new PageVO();
         pageVO.setList(gmvList);
         pageQueryVo.setPageVO(pageVO);
@@ -303,9 +304,10 @@ public class GmvAnalysisServiceImpl implements IGmvAnalysisService {
      * @param groupList
      */
     private void formatIndexAndVideoAdd(List<GmvDetailVo> gmvList, List<GmvDetailVo> gmvIndexList,
-                                        List<GmvDetailVo> addVideoList, List<String> groupList) {
+                                        List<GmvDetailVo> addVideoList,List<GmvDetailVo> videoList, List<String> groupList) {
         Map<String, Integer> indexMap = new HashMap<>();
         Map<String,Integer> addVideoMap = new HashMap<>();
+        Map<String,Integer> videoMap = new HashMap<>();
         gmvIndexList.stream().forEach(a -> {
             String pid = a.getProduct_id();
             String creator = a.getCreator();
@@ -330,7 +332,21 @@ public class GmvAnalysisServiceImpl implements IGmvAnalysisService {
             } else {
                 keyBuffer.append(creator);
             }
-            addVideoMap.put(keyBuffer.toString(), a.getVideos());
+            addVideoMap.put(keyBuffer.toString(), a.getAddVideos());
+        });
+        videoList.stream().forEach(a->{
+            String pid = a.getProduct_id();
+            String creator = a.getCreator();
+            StringBuffer keyBuffer = new StringBuffer();
+            if(groupList.contains("day")){
+                keyBuffer.append(a.getDate() + "_");
+            }
+            if (StringUtils.isNotBlank(pid)) {
+                keyBuffer.append(pid);
+            } else {
+                keyBuffer.append(creator);
+            }
+            videoMap.put(keyBuffer.toString(), a.getVideos());
         });
         gmvList.stream().forEach(a->{
             String pid = a.getProduct_id();
@@ -349,6 +365,8 @@ public class GmvAnalysisServiceImpl implements IGmvAnalysisService {
             }
             videoBuffer.append(key);
             Integer addVideo = addVideoMap.get(videoBuffer.toString());
+            Integer video = videoMap.get(videoBuffer.toString());
+            a.setVideos(video != null ? video : 0);
             a.setAddVideos(addVideo != null ?addVideo : 0);
             IndexBuffer.append(day + "_");
             IndexBuffer.append(key);
@@ -358,6 +376,52 @@ public class GmvAnalysisServiceImpl implements IGmvAnalysisService {
     }
 
     private List<GmvDetailVo> generateAddVideoList(List<String> groupList, JSONObject whereParam) {
+        List<String> timeList = JSONObject.parseArray(whereParam.getJSONArray("time").toJSONString(), String.class);
+        StringBuffer sql = new StringBuffer();
+        boolean groupDay = false;
+        if(groupList.contains("day")){
+            groupDay = true;
+        }
+        sql.append(" SELECT count(vid)as addVideos,");
+        if(groupDay){
+            sql.append("toDate(date)AS day,");
+        }
+        if (groupList.contains("product_id")) {
+            sql.append("product_id");
+        } else {
+            sql.append("creator");
+        }
+        sql.append(" FROM video_detail where ");
+        sql.append("toDateTime(postTime, 'Asia/Shanghai')>='" + timeList.get(0) + "' and toDateTime(postTime, 'Asia/Shanghai')<='" + timeList.get(1) + "'");
+        if (groupList.contains("product_id")) {
+            sql.append(" GROUP BY product_id");
+        } else {
+            sql.append(" GROUP BY creator");
+        }
+        if(groupDay){
+            sql.append(",day");
+        }
+        List<Map<String, String>> results = generateQueryResult(sql);
+        List<JSONObject> jsonObjectList = new ArrayList<>();
+        results.stream().forEach(a -> {
+            JSONObject jsonObject = new JSONObject();
+            a.entrySet().stream().forEach(b -> {
+                String key = b.getKey();
+                String value = b.getValue();
+                if(key.equals("day")){
+                    jsonObject.put("date", value);
+                }else {
+                    jsonObject.put(key, value);
+                }
+            });
+            jsonObjectList.add(jsonObject);
+        });
+        List<GmvDetailVo> videoAddList = JSONObject.parseArray(JSON.toJSONString(jsonObjectList), GmvDetailVo.class);
+        return videoAddList;
+    }
+
+
+    private List<GmvDetailVo> generateVideoList(List<String> groupList, JSONObject whereParam) {
         List<String> timeList = JSONObject.parseArray(whereParam.getJSONArray("time").toJSONString(), String.class);
         StringBuffer sql = new StringBuffer();
         boolean groupDay = false;
@@ -374,7 +438,7 @@ public class GmvAnalysisServiceImpl implements IGmvAnalysisService {
             sql.append("creator");
         }
         sql.append(" FROM video_detail where ");
-        sql.append("toDateTime(postTime, 'Asia/Shanghai')>='" + timeList.get(0) + "' and toDateTime(postTime, 'Asia/Shanghai')<='" + timeList.get(1) + "'");
+        sql.append("toDateTime(date, 'Asia/Shanghai')>='" + timeList.get(0) + "' and toDateTime(date, 'Asia/Shanghai')<='" + timeList.get(1) + "'");
         if (groupList.contains("product_id")) {
             sql.append(" GROUP BY product_id");
         } else {
@@ -554,8 +618,9 @@ public class GmvAnalysisServiceImpl implements IGmvAnalysisService {
                 }
             });
         }
-        List<GmvDetailVo> addVideoList = generateSingleVideoList(whereParam);
-        combineAddVideoList(gmvList,addVideoList,groupList);
+        List<GmvDetailVo> addVideoList = generateSingleAddVideoList(whereParam);
+        List<GmvDetailVo> videoList = generateSingleVideoList(whereParam);
+        combineAddVideoList(gmvList,addVideoList,videoList,groupList);
 
 //        gmvList.stream().forEach(a->{
 //            String key = a.getDate() + "_" + a.getCreator() + "_" + a.getProduct_id();
@@ -568,8 +633,9 @@ public class GmvAnalysisServiceImpl implements IGmvAnalysisService {
         return pageQueryVo;
     }
 
-    private void combineAddVideoList(List<GmvDetailVo> gmvList, List<GmvDetailVo> addVideoList, List<String> groupList) {
+    private void combineAddVideoList(List<GmvDetailVo> gmvList, List<GmvDetailVo> addVideoList, List<GmvDetailVo> videoList, List<String> groupList) {
         Map<String,Integer> addVideoMap = new HashMap<>();
+        Map<String,Integer> videoMap = new HashMap<>();
         addVideoList.stream().forEach(a->{
             String pid = a.getProduct_id();
             String creator = a.getCreator();
@@ -579,7 +645,19 @@ public class GmvAnalysisServiceImpl implements IGmvAnalysisService {
             } else {
                 keyBuffer.append(creator);
             }
-            addVideoMap.put(keyBuffer.toString(), a.getVideos());
+            addVideoMap.put(keyBuffer.toString(), a.getAddVideos());
+        });
+
+        videoList.stream().forEach(a->{
+            String pid = a.getProduct_id();
+            String creator = a.getCreator();
+            StringBuffer keyBuffer = new StringBuffer();
+            if (groupList.contains("product_id")) {
+                keyBuffer.append(pid);
+            } else {
+                keyBuffer.append(creator);
+            }
+            videoMap.put(keyBuffer.toString(), a.getVideos());
         });
         gmvList.stream().forEach(a->{
             String pid = a.getProduct_id();
@@ -596,8 +674,53 @@ public class GmvAnalysisServiceImpl implements IGmvAnalysisService {
             videoBuffer.append(key);
             Integer addViewCount = addVideoMap.get(videoBuffer.toString());
             a.setAddVideos(addViewCount != null ? addViewCount : 0);
+
+            Integer videoCount = videoMap.get(videoBuffer.toString());
+            a.setVideos(videoCount != null ? videoCount : 0);
         });
     }
+
+    private List<GmvDetailVo> generateSingleAddVideoList(JSONObject whereParam) {
+        List<String> timeList = JSONObject.parseArray(whereParam.getJSONArray("time").toJSONString(), String.class);
+        List<GmvDetailVo> videoAddList = new ArrayList<>();
+        if(timeList == null || timeList.size() == 0){
+            return videoAddList;
+        }
+        List<String> pidList = new ArrayList<>();
+        if(whereParam.getJSONArray("pid") != null){
+            pidList =  JSONObject.parseArray(whereParam.getJSONArray("pid").toJSONString(), String.class);
+
+        }
+        List<String> creatorList = new ArrayList<>();
+        if(whereParam.getJSONArray("creator") != null){
+            creatorList = JSONObject.parseArray(whereParam.getJSONArray("creator").toJSONString(), String.class);
+        }
+        StringBuffer sql = new StringBuffer();
+        sql.append(" SELECT count(vid)as addVideos,toDate(date)AS day,product_id,creator");
+        sql.append(" FROM video_detail where");
+        sql.append(" toDateTime(postTime, 'Asia/Shanghai')>='" + timeList.get(0) + "' AND toDateTime(postTime, 'Asia/Shanghai')<='" + timeList.get(1) + "'");
+        if(pidList != null && pidList.size() > 0){
+            sql.append(" AND product_id = '" + pidList.get(0) + "'");
+        }
+        if(creatorList != null && creatorList.size() > 0){
+            sql.append(" AND creator = '" + creatorList.get(0) + "'");
+        }
+        sql.append(" GROUP BY day,product_id,creator");
+        List<Map<String, String>> results = generateQueryResult(sql);
+        List<JSONObject> jsonObjectList = new ArrayList<>();
+        results.stream().forEach(a -> {
+            JSONObject jsonObject = new JSONObject();
+            a.entrySet().stream().forEach(b -> {
+                String key = b.getKey();
+                String value = b.getValue();
+                jsonObject.put(key, value);
+            });
+            jsonObjectList.add(jsonObject);
+        });
+        videoAddList = JSONObject.parseArray(JSON.toJSONString(jsonObjectList), GmvDetailVo.class);
+        return videoAddList;
+    }
+
 
     private List<GmvDetailVo> generateSingleVideoList(JSONObject whereParam) {
         List<String> timeList = JSONObject.parseArray(whereParam.getJSONArray("time").toJSONString(), String.class);
@@ -613,7 +736,7 @@ public class GmvAnalysisServiceImpl implements IGmvAnalysisService {
         StringBuffer sql = new StringBuffer();
         sql.append(" SELECT count(vid)as videos,toDate(date)AS day,product_id,creator");
         sql.append(" FROM video_detail where");
-        sql.append(" toDateTime(postTime, 'Asia/Shanghai')>='" + timeList.get(0) + "' AND toDateTime(postTime, 'Asia/Shanghai')<='" + timeList.get(1) + "'");
+        sql.append(" toDateTime(date, 'Asia/Shanghai')>='" + timeList.get(0) + "' AND toDateTime(date, 'Asia/Shanghai')<='" + timeList.get(1) + "'");
         if(pidList != null && pidList.size() > 0){
             sql.append(" AND product_id = '" + pidList.get(0) + "'");
         }
@@ -721,8 +844,9 @@ public class GmvAnalysisServiceImpl implements IGmvAnalysisService {
             jsonObjectList.add(jsonObject);
         });
         List<GmvDetailVo> gmvList = JSONObject.parseArray(JSON.toJSONString(jsonObjectList), GmvDetailVo.class);
-        List<GmvDetailVo> addVideoList = generateSingleVideoList(whereParam);
-        combineAddVideoList(gmvList,addVideoList,groupList);
+        List<GmvDetailVo> addVideoList = generateSingleAddVideoList(whereParam);
+        List<GmvDetailVo> videoList = generateSingleVideoList(whereParam);
+        combineAddVideoList(gmvList,addVideoList,videoList,groupList);
 //        for(GmvDetailVo gmvDetailVo : gmvList){
 //            String finalCreator = StringUtils.isNotBlank(gmvDetailVo.getCreator()) ? gmvDetailVo.getCreator() : creator;
 //            String finalPid = StringUtils.isNotBlank(gmvDetailVo.getProduct_id()) ? gmvDetailVo.getProduct_id() : pid;
