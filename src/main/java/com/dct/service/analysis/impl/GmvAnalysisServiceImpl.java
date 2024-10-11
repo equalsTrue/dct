@@ -24,7 +24,6 @@ import com.dct.repo.security.AdminUserRepo;
 import com.dct.service.account.IAccountService;
 import com.dct.service.analysis.IGmvAnalysisService;
 import com.dct.utils.DateUtil;
-import com.dct.utils.S3Util;
 import com.dct.utils.SpringMvcFileUpLoad;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
@@ -36,8 +35,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
 import javax.annotation.Resource;
-import java.io.BufferedInputStream;
-import java.io.BufferedOutputStream;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileInputStream;
@@ -46,7 +43,6 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
-import java.nio.charset.Charset;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.PreparedStatement;
@@ -58,13 +54,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.LinkedBlockingQueue;
-import java.util.concurrent.ThreadPoolExecutor;
-import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
-import java.util.zip.ZipEntry;
-import java.util.zip.ZipInputStream;
 
 /**
  * @program dct
@@ -266,12 +256,13 @@ public class GmvAnalysisServiceImpl implements IGmvAnalysisService {
         invalidWhereParamList.add("userGroup");
         invalidWhereParamList.add("status");
 //        whereParam.put("creator",creator);
+        StringBuffer timeSql =  new StringBuffer();
         whereParam.keySet().forEach(keyStr -> {
             if(!invalidWhereParamList.contains(keyStr)){
                 List<String> filters = JSONObject.parseArray(whereParam.getJSONArray(keyStr).toJSONString(), String.class);
                 if ("time".equals(keyStr)) {
                     if (filters.size() == 2) {
-                        whereStr.append("toDateTime(date, 'Asia/Shanghai')>='" + filters.get(0) + "' and toDateTime(date, 'Asia/Shanghai')<='" + filters.get(1) + "'");
+                       timeSql.append("toDateTime(date, 'Asia/Shanghai')>='" + filters.get(0) + "' and toDateTime(date, 'Asia/Shanghai')<='" + filters.get(1) + "'");
                     }
                 } else {
                     if (filters.size() > 0) {
@@ -287,6 +278,7 @@ public class GmvAnalysisServiceImpl implements IGmvAnalysisService {
                 }
             }
         });
+        whereStr.append(timeSql);
         return whereStr;
     }
 
@@ -498,11 +490,12 @@ public class GmvAnalysisServiceImpl implements IGmvAnalysisService {
      */
     private StringBuffer generateWhereStr(JSONObject whereParam) {
         StringBuffer whereStr = new StringBuffer();
+        StringBuffer timeSql =  new StringBuffer();
         whereParam.keySet().forEach(keyStr -> {
             List<String> filters = JSONObject.parseArray(whereParam.getJSONArray(keyStr).toJSONString(), String.class);
             if ("time".equals(keyStr)) {
                 if (filters.size() == 2) {
-                    whereStr.append("toDateTime(date, 'Asia/Shanghai')>='" + filters.get(0) + "' and toDateTime(date, 'Asia/Shanghai')<='" + filters.get(1) + "' ");
+                    timeSql.append("toDateTime(date, 'Asia/Shanghai')>='" + filters.get(0) + "' and toDateTime(date, 'Asia/Shanghai')<='" + filters.get(1) + "' ");
                 }
             } else {
                 if (filters.size() > 0) {
@@ -517,6 +510,7 @@ public class GmvAnalysisServiceImpl implements IGmvAnalysisService {
                 }
             }
         });
+        whereStr.append(timeSql);
         return whereStr;
     }
 
@@ -756,15 +750,14 @@ public class GmvAnalysisServiceImpl implements IGmvAnalysisService {
         JSONArray time = params.getJSONArray("time");
         JSONArray postTime = params.getJSONArray("postTime");
         List<String> timeList = JSONArray.parseArray(JSON.toJSONString(time), String.class);
-        List<String> postTimeList = JSONArray.parseArray(JSON.toJSONString(time), String.class);
-        if(postTimeList == null || postTimeList.size() == 0 ){
-            postTimeList = timeList;
-        }
-        List<VideoDetailVo> videoGmvIndexList = generateVideoIndex(pid,creator,timeList);
+        List<String> postTimeList = JSONArray.parseArray(JSON.toJSONString(postTime), String.class);
+        List<VideoDetailVo> videoGmvIndexList = generateVideoIndex(pid,creator,timeList,postTimeList);
         StringBuffer sql = new StringBuffer();
         sql.append("SELECT vid,url,sum(video_views)as video_views,sum(gmv)as gmv,toDate(date)AS day");
-        sql.append(" FROM video_detail ");
-        sql.append(" where toDateTime(date, 'Asia/Shanghai')>='" + timeList.get(0) + "' and toDateTime(date, 'Asia/Shanghai')<='" + timeList.get(1) + "' AND ");
+        sql.append(" FROM video_detail where ");
+        if(timeList != null && timeList.size() > 0 ){
+            sql.append(" toDateTime(date, 'Asia/Shanghai')>='" + timeList.get(0) + "' and toDateTime(date, 'Asia/Shanghai')<='" + timeList.get(1) + "' AND ");
+        }
         if(postTimeList != null && postTimeList.size() > 0 ){
             sql.append("  toDateTime(postTime, 'Asia/Shanghai')>='" + postTimeList.get(0) + "' and toDateTime(postTime, 'Asia/Shanghai')<='" + postTimeList.get(1) + "' AND ");
         }
@@ -805,11 +798,17 @@ public class GmvAnalysisServiceImpl implements IGmvAnalysisService {
         return videoList;
     }
 
-    private List<VideoDetailVo> generateVideoIndex(String pid, String creator, List<String> timeList) {
+    private List<VideoDetailVo> generateVideoIndex(String pid, String creator, List<String> timeList, List<String> postTimeList) {
         StringBuffer sql = new StringBuffer();
+        List<String> queryTimeList = new ArrayList<>();
+        if(timeList != null && timeList.size() > 0 ){
+            queryTimeList = timeList;
+        }else if(postTimeList != null && postTimeList.size() > 0){
+            queryTimeList = postTimeList;
+        }
         sql.append(" SELECT sum(gmv)as gmv,toDate(date)AS day,vid");
         sql.append(" FROM video_detail where ");
-        sql.append("toDateTime(date, 'Asia/Shanghai')>='" + timeList.get(0) + "' AND toDateTime(date, 'Asia/Shanghai')<='" + timeList.get(1) + "'");
+        sql.append("toDateTime(date, 'Asia/Shanghai')>='" + queryTimeList.get(0) + "' AND toDateTime(date, 'Asia/Shanghai')<='" + queryTimeList.get(1) + "'");
         sql.append(" GROUP BY vid,day");
         sql.append(" ORDER BY gmv desc");
         List<Map<String, String>> results = generateQueryResult(sql);
@@ -902,19 +901,14 @@ public class GmvAnalysisServiceImpl implements IGmvAnalysisService {
     }
 
     @Override
-    public void handleTkReport(MultipartFile gmvFile, MultipartFile vidFile, MultipartFile pidFile, MultipartFile creatorFile, String account, String time, String country) {
+    public void handleTkReport(MultipartFile gmvFile, MultipartFile vidFile, String account, String time, String country) {
         if(gmvFile != null){
             handleGmvFile(gmvFile,account,time,country);
         }
         if(vidFile != null){
             handleVidFile(vidFile,account,time,country);
         }
-        if(pidFile != null){
-            handlePidFile(pidFile,account,time,country);
-        }
-        if(creatorFile != null){
-            handleCreatorFile(creatorFile,account,time,country);
-        }
+
     }
 
     @Override
@@ -975,25 +969,7 @@ public class GmvAnalysisServiceImpl implements IGmvAnalysisService {
         }
     }
 
-    private void handleCreatorFile(MultipartFile creatorFile, String account, String time, String country) {
-        try {
-            File tempFile = multipartFileToFile(creatorFile);
-            importCsvFile(tempFile, account, time,"creator", country);
-            deleteFile(tempFile);
-        } catch (Exception e) {
-            log.error("HANDLE SUBMIT FILE:{}, ERROR:{}", account, e);
-        }
-    }
 
-    private void handlePidFile(MultipartFile pidFile, String account, String time, String country) {
-        try {
-            File tempFile = multipartFileToFile(pidFile);
-            importCsvFile(tempFile, account, time,"pid", country);
-            deleteFile(tempFile);
-        } catch (Exception e) {
-            log.error("HANDLE SUBMIT FILE:{}, ERROR:{}", account, e);
-        }
-    }
 
     private void handleVidFile(MultipartFile vidFile, String account, String time, String country) {
         try {
@@ -1035,14 +1011,6 @@ public class GmvAnalysisServiceImpl implements IGmvAnalysisService {
                 case "vid":
                     generateVidIndex(reader);
                     saveVidData(reader,account,time);
-                    break;
-                case "pid":
-                    generatePidIndex(reader,account,time);
-                    savePidData(reader,account,time);
-                    break;
-                case "creator":
-                    generateCreatorIndex(reader,account,time);
-                    saveCreatorData(reader,account,time);
                     break;
                 default:
             }

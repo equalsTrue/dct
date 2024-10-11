@@ -104,15 +104,12 @@ public class GmvAnalysisController {
      * 上传文件.
      * @param gmvFiles
      * @param vidFiles
-     * @param pidFiles
-     * @param creatorFiles
      * @param accounts
      * @param times
      * @return
      */
     @PostMapping(value = "gmv/file/submit", headers = "content-type=multipart/form-data")
     public ResponseInfoVO saveReport(@RequestParam("gmvFile") List<MultipartFile> gmvFiles, @RequestParam("vidFile") List<MultipartFile> vidFiles,
-                                     @RequestParam("pidFile") List<MultipartFile> pidFiles,@RequestParam("creatorFile") List<MultipartFile> creatorFiles,
                                      @RequestParam("account") List<String> accounts, @RequestParam("times") List<String> times,
                                      @RequestParam("country") List<String> countries) {
         try {
@@ -132,20 +129,10 @@ public class GmvAnalysisController {
                             vidFile = vidFiles.get(accounts.indexOf(a));
                         }
                     }
-                    if (pidFiles != null && pidFiles.size() > 0) {
-                        if (!pidFiles.get(accounts.indexOf(a)).getOriginalFilename().equalsIgnoreCase(MainConstant.NULL)) {
-                            pidFile = pidFiles.get(accounts.indexOf(a));
-                        }
-                    }
-                    if (creatorFiles != null && creatorFiles.size() > 0) {
-                        if (!creatorFiles.get(accounts.indexOf(a)).getOriginalFilename().equalsIgnoreCase(MainConstant.NULL)) {
-                            creatorFile = creatorFiles.get(accounts.indexOf(a));
-                        }
-                    }
                     String time = times.get(accounts.indexOf(a));
                     String country = countries.get(accounts.indexOf(a));
                     String account = a;
-                    gmvAnalysisService.handleTkReport(gmvFile, vidFile, pidFile, creatorFile, account, time,country);
+                    gmvAnalysisService.handleTkReport(gmvFile, vidFile, account, time,country);
                 });
             }
         } catch (Exception e) {
