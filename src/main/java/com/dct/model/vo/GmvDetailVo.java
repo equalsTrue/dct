@@ -38,7 +38,9 @@ public class GmvDetailVo {
 
     public String product_name;
 
-    public String productUrl;
+    public String productPicture;
+
+    public String creatorPicture;
 
     public String orders;
 

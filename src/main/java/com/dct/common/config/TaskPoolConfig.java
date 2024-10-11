@@ -14,13 +14,14 @@ import java.util.concurrent.ThreadPoolExecutor;
  * @author david
  */
 @Configuration
+@EnableAsync
 public class TaskPoolConfig {
     @Bean
     @Qualifier(value = "taskExecutor")
     public Executor taskExecutor() {
         ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();
-        executor.setCorePoolSize(100);
-        executor.setMaxPoolSize(200);
+        executor.setCorePoolSize(50);
+        executor.setMaxPoolSize(100);
         executor.setQueueCapacity(500);
         executor.setKeepAliveSeconds(60 * 5);
         executor.setThreadNamePrefix("taskExecutor-");

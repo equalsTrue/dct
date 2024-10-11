@@ -164,4 +164,23 @@ public class GmvAnalysisController {
         return ResponseInfoUtil.success();
     }
 
+
+    /**
+     * 上传PID Creator文件.
+     *
+     * @return
+     * @throws Exception
+     */
+    @GetMapping(value = "/picture/submit")
+    public ResponseInfoVO submitPicture() throws Exception {
+        JSONObject result = new JSONObject();
+        try {
+            gmvAnalysisService.submitPicture();
+        } catch (Exception e) {
+            log.error("SUBMIT APP PICTURE ERROR:{}", e.getStackTrace());
+            return ResponseInfoUtil.error();
+        }
+        return ResponseInfoUtil.success(result);
+    }
+
 }

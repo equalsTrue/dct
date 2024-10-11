@@ -70,4 +70,6 @@ public interface IGmvAnalysisService {
     void handleTkReport(MultipartFile gmvFile, MultipartFile vidFile, MultipartFile pidFile, MultipartFile creatorFile, String account, String time, String country);
 
     void fetchGmvFile();
+
+    void submitPicture();
 }

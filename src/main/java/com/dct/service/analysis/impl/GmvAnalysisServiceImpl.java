@@ -8,7 +8,6 @@ package com.dct.service.analysis.impl;/**
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
-import com.clickhouse.client.internal.google.common.util.concurrent.ThreadFactoryBuilder;
 import com.dct.common.config.datasource.ClickHouseConfig;
 import com.dct.common.constant.consist.MainConstant;
 import com.dct.common.constant.enums.NumberEnum;
@@ -25,6 +24,8 @@ import com.dct.repo.security.AdminUserRepo;
 import com.dct.service.account.IAccountService;
 import com.dct.service.analysis.IGmvAnalysisService;
 import com.dct.utils.DateUtil;
+import com.dct.utils.S3Util;
+import com.dct.utils.SpringMvcFileUpLoad;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -35,6 +36,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
 import javax.annotation.Resource;
+import java.io.BufferedInputStream;
+import java.io.BufferedOutputStream;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileInputStream;
@@ -43,6 +46,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
+import java.nio.charset.Charset;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.PreparedStatement;
@@ -59,6 +63,8 @@ import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipInputStream;
 
 /**
  * @program dct
@@ -68,7 +74,7 @@ import java.util.stream.Collectors;
  */
 @Service
 @Slf4j
-        public class GmvAnalysisServiceImpl implements IGmvAnalysisService {
+public class GmvAnalysisServiceImpl implements IGmvAnalysisService {
 
     @Autowired
     private AccountRepo accountRepo;
@@ -120,6 +126,10 @@ import java.util.stream.Collectors;
      * creator 数据列.
      */
     Map<String, Integer> creatorDataIndex = new HashMap<>(0);
+
+
+    @Autowired
+    SpringMvcFileUpLoad fileUpLoad;
 
 
     @Resource
@@ -191,6 +201,9 @@ import java.util.stream.Collectors;
         });
         List<GmvDetailVo> gmvList = JSONObject.parseArray(JSON.toJSONString(jsonObjectList), GmvDetailVo.class);
         if (groupList.contains("creator")) {
+            gmvList.stream().forEach(a->{
+                a.setCreatorPicture("https://dct-gmv.s3.ap-southeast-1.amazonaws.com/creator/" + a.getCreator() + ".png");
+            });
             //补全归属人
             List<AccountModel> accountList = accountRepo.findAll();
             if(accountList != null && accountList.size() > 0){
@@ -203,6 +216,10 @@ import java.util.stream.Collectors;
                     }
                 });
             }
+        }else {
+            gmvList.stream().forEach(a->{
+                a.setProductPicture("https://dct-gmv.s3.ap-southeast-1.amazonaws.com/pid/" + a.getProduct_id() + ".png");
+            });
         }
         List<GmvDetailVo> addVideoList = generateAddVideoList(groupList, whereParam);
         formatIndexAndVideoAdd(gmvList, gmvIndexList, addVideoList, groupList);
@@ -313,7 +330,9 @@ import java.util.stream.Collectors;
             String pid = a.getProduct_id();
             String creator = a.getCreator();
             StringBuffer keyBuffer = new StringBuffer();
-            keyBuffer.append("addVideo_");
+            if(groupList.contains("day")){
+                keyBuffer.append(a.getDate() + "_");
+            }
             if (StringUtils.isNotBlank(pid)) {
                 keyBuffer.append(pid);
             } else {
@@ -333,10 +352,12 @@ import java.util.stream.Collectors;
                 key = creator;
             }
             String day = a.getDate();
-            videoBuffer.append(day + "_");
+            if(groupList.contains("day")){
+                videoBuffer.append(day + "_");
+            }
             videoBuffer.append(key);
-            Integer beforeVideoCount = addVideoMap.get(videoBuffer.toString());
-            a.setAddVideos(a.getVideos() - (beforeVideoCount == null ? 0 : beforeVideoCount));
+            Integer addVideo = addVideoMap.get(videoBuffer.toString());
+            a.setAddVideos(addVideo != null ?addVideo : 0);
             IndexBuffer.append(day + "_");
             IndexBuffer.append(key);
             Integer index = indexMap.get(IndexBuffer.toString());
@@ -347,18 +368,28 @@ import java.util.stream.Collectors;
     private List<GmvDetailVo> generateAddVideoList(List<String> groupList, JSONObject whereParam) {
         List<String> timeList = JSONObject.parseArray(whereParam.getJSONArray("time").toJSONString(), String.class);
         StringBuffer sql = new StringBuffer();
-        sql.append(" SELECT sum(videos)as videos,toDate(date)AS day,");
+        boolean groupDay = false;
+        if(groupList.contains("day")){
+            groupDay = true;
+        }
+        sql.append(" SELECT count(vid)as videos,");
+        if(groupDay){
+            sql.append("toDate(date)AS day,");
+        }
         if (groupList.contains("product_id")) {
             sql.append("product_id");
         } else {
             sql.append("creator");
         }
-        sql.append(" FROM video_detail ");
-        sql.append("toDateTime(post_time, 'Asia/Shanghai')>='" + timeList.get(0) + "' and toDateTime(post_time, 'Asia/Shanghai')<='" + timeList.get(1));
+        sql.append(" FROM video_detail where ");
+        sql.append("toDateTime(postTime, 'Asia/Shanghai')>='" + timeList.get(0) + "' and toDateTime(postTime, 'Asia/Shanghai')<='" + timeList.get(1) + "'");
         if (groupList.contains("product_id")) {
             sql.append(" GROUP BY product_id");
         } else {
             sql.append(" GROUP BY creator");
+        }
+        if(groupDay){
+            sql.append(",day");
         }
         List<Map<String, String>> results = generateQueryResult(sql);
         List<JSONObject> jsonObjectList = new ArrayList<>();
@@ -367,7 +398,11 @@ import java.util.stream.Collectors;
             a.entrySet().stream().forEach(b -> {
                 String key = b.getKey();
                 String value = b.getValue();
-                jsonObject.put(key, value);
+                if(key.equals("day")){
+                    jsonObject.put("date", value);
+                }else {
+                    jsonObject.put(key, value);
+                }
             });
             jsonObjectList.add(jsonObject);
         });
@@ -542,13 +577,10 @@ import java.util.stream.Collectors;
     private void combineAddVideoList(List<GmvDetailVo> gmvList, List<GmvDetailVo> addVideoList, List<String> groupList) {
         Map<String,Integer> addVideoMap = new HashMap<>();
         addVideoList.stream().forEach(a->{
-            String date = a.getDate();
             String pid = a.getProduct_id();
             String creator = a.getCreator();
             StringBuffer keyBuffer = new StringBuffer();
-            keyBuffer.append(date);
-            keyBuffer.append("_");
-            if (groupList.contains("pid")) {
+            if (groupList.contains("product_id")) {
                 keyBuffer.append(pid);
             } else {
                 keyBuffer.append(creator);
@@ -558,6 +590,8 @@ import java.util.stream.Collectors;
         gmvList.stream().forEach(a->{
             String pid = a.getProduct_id();
             String creator = a.getCreator();
+            a.setCreatorPicture("https://dct-gmv.s3.ap-southeast-1.amazonaws.com/creator/" + a.getCreator() + ".png");
+            a.setProductPicture("https://dct-gmv.s3.ap-southeast-1.amazonaws.com/pid/" + a.getProduct_id() + ".png");
             String key = "";
             StringBuffer videoBuffer = new StringBuffer();
             if (StringUtils.isNotBlank(pid)) {
@@ -565,23 +599,33 @@ import java.util.stream.Collectors;
             } else {
                 key = creator;
             }
-            String day = a.getDate();
-            videoBuffer.append(day + "_");
             videoBuffer.append(key);
             Integer addViewCount = addVideoMap.get(videoBuffer.toString());
-            a.setAddVideos(addViewCount);
+            a.setAddVideos(addViewCount != null ? addViewCount : 0);
         });
     }
 
     private List<GmvDetailVo> generateSingleVideoList(JSONObject whereParam) {
         List<String> timeList = JSONObject.parseArray(whereParam.getJSONArray("time").toJSONString(), String.class);
-        List<String> creatorList = JSONObject.parseArray(whereParam.getJSONArray("creator").toJSONString(), String.class);
-        List<String> pidList = JSONObject.parseArray(whereParam.getJSONArray("pid").toJSONString(), String.class);
+        List<String> pidList = new ArrayList<>();
+        if(whereParam.getJSONArray("pid") != null){
+            pidList =  JSONObject.parseArray(whereParam.getJSONArray("pid").toJSONString(), String.class);
+
+        }
+        List<String> creatorList = new ArrayList<>();
+        if(whereParam.getJSONArray("creator") != null){
+            creatorList = JSONObject.parseArray(whereParam.getJSONArray("creator").toJSONString(), String.class);
+        }
         StringBuffer sql = new StringBuffer();
-        sql.append(" SELECT sum(videos)as videos,toDate(date)AS day,product_id,creator");
-        sql.append(" FROM video_detail");
-        sql.append(" toDateTime(post_time, 'Asia/Shanghai')>='" + timeList.get(0) + "' and toDateTime(post_time, 'Asia/Shanghai')<='" + timeList.get(1));
-        sql.append(" AND product_id = '" + pidList.get(0) + "' AND creator = '" + creatorList.get(0) + "'");
+        sql.append(" SELECT count(vid)as videos,toDate(date)AS day,product_id,creator");
+        sql.append(" FROM video_detail where");
+        sql.append(" toDateTime(postTime, 'Asia/Shanghai')>='" + timeList.get(0) + "' AND toDateTime(postTime, 'Asia/Shanghai')<='" + timeList.get(1) + "'");
+        if(pidList != null && pidList.size() > 0){
+            sql.append(" AND product_id = '" + pidList.get(0) + "'");
+        }
+        if(creatorList != null && creatorList.size() > 0){
+            sql.append(" AND creator = '" + creatorList.get(0) + "'");
+        }
         sql.append(" GROUP BY day,product_id,creator");
         List<Map<String, String>> results = generateQueryResult(sql);
         List<JSONObject> jsonObjectList = new ArrayList<>();
@@ -791,10 +835,11 @@ import java.util.stream.Collectors;
     @Override
     public JSONObject fetchQueryPidListParams(String creator) {
         StringBuffer sql = new StringBuffer();
-        sql.append("SELECT product_id,level_1_category,level_2_category,campaign_id FROM gmv_detail group by product_id,level_1_category,level_2_category,campaign_id");
+        sql.append("SELECT product_id,level_1_category,level_2_category,campaign_id FROM gmv_detail ");
         if(!(StringUtils.isBlank(creator) || creator.equals("undefined"))){
             sql.append(" where creator = '" + creator + "'");
         }
+        sql.append(" group by product_id,level_1_category,level_2_category,campaign_id");
         List<Map<String, String>> results = generateQueryResult(sql);
         List<String> pidList = new ArrayList<>();
         List<String> level1List = new ArrayList<>();
@@ -886,6 +931,43 @@ import java.util.stream.Collectors;
 
         }
     }
+
+    @Override
+    public void submitPicture() {
+        File creatorFolder = new File("/Users/lichen/Downloads/handle"); // 替换为你的文件夹路径
+        File[] creatorListOfFiles = creatorFolder.listFiles();
+        List<File> creatorFileList = new ArrayList<>();
+        File pidFolder = new File("/Users/lichen/Downloads/pid"); // 替换为你的文件夹路径
+        File[] pidListOfFiles = pidFolder.listFiles();
+        List<File> pidFileList = new ArrayList<>();
+       try {
+           for (File file : creatorListOfFiles) {
+               if (file.isFile()) {
+                   creatorFileList.add(file);
+
+               }
+           }
+
+           for (File file : pidListOfFiles) {
+               if (file.isFile()) {
+                   pidFileList.add(file);
+
+               }
+           }
+           Map<String,List<File>> submitMap = new HashMap<>();
+           submitMap.put("creator",creatorFileList);
+           submitMap.put("pid",pidFileList);
+           fileUpLoad.uploadFilesToS3(submitMap);
+       }catch (Exception e){
+
+       }
+
+
+    }
+
+
+
+
 
     public void deleteFile(File excelFile) {
         if (excelFile.exists()) {
@@ -986,8 +1068,8 @@ import java.util.stream.Collectors;
     }
 
     private void saveVidData(BufferedReader reader, String account, String time) {
-        List<VideoDetailModel> videoDetailModels = new ArrayList<>();
         try {
+            List<VideoDetailModel> videoDetailModels = new ArrayList<>();
             int index = 0;
             String line = null;
             while ((line = reader.readLine()) != null) {
@@ -1009,7 +1091,7 @@ import java.util.stream.Collectors;
                     model.setProduct_id(product_id);
                     model.setGmv(gmv);
                     model.setVid(vid);
-                    model.setPostTime(Long.valueOf(DateUtil.parseTimeByDayFormat(postTime.substring(0,10) + " 10:00:00")));
+                    model.setPostTime(StringUtils.isNotBlank(postTime) ? DateUtil.parseTimeByDayFormat(postTime.substring(0,10) + " 10:00:00") : DateUtil.parseDayByDayFormat(postTime));
                     model.setVideo_views(video_views);
                     model.setCommission(commission);
                     String url = "http://www.tiktok.com/@handle/video/" + vid;
@@ -1148,7 +1230,7 @@ import java.util.stream.Collectors;
                     sql = "INSERT INTO gmv_detail (id,date,account,country,creator,campaign_id,campaign_name,level_1_category,level_2_category,product_id,product_name,gmv,orders,video_views,videos,creator_commission,partner_commission) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
                     break;
                 case "vid":
-                    sql = "INSERT INTO video_detail (id, account,creator,commission,gmv,product_id,url,vid,video_views,date) VALUES (?,?,?,?,?,?,?,?,?,?)";
+                    sql = "INSERT INTO video_detail (id, account,creator,commission,gmv,product_id,url,vid,video_views,date,postTime) VALUES (?,?,?,?,?,?,?,?,?,?,?)";
                     break;
                 case "pid":
                     sql = "";
@@ -1212,6 +1294,7 @@ import java.util.stream.Collectors;
                 statement.setString(8,a.getVid());
                 statement.setInt(9,a.getVideo_views());
                 statement.setLong(10,a.getDate());
+                statement.setLong(11,a.getPostTime());
                 statement.addBatch();
             } catch (SQLException e) {
                 throw new RuntimeException(e);

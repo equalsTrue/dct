@@ -4,15 +4,20 @@ import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.model.CannedAccessControlList;
 import com.amazonaws.services.s3.model.DeleteObjectRequest;
 import com.amazonaws.services.s3.model.GetObjectRequest;
+import com.amazonaws.services.s3.model.ObjectMetadata;
 import com.amazonaws.services.s3.model.PutObjectRequest;
 import com.amazonaws.services.s3.model.S3Object;
+import com.dct.common.constant.consist.MainConstant;
+import com.google.common.net.MediaType;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Component;
 
 import java.io.File;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -67,11 +72,18 @@ public class S3Util {
 			}
 		}
 	}
-	
 
-	
 
-	
+
+
+
+
+
+
+
+
+
+
 	/**
 	 * 根据key获取对象
 	 * 
@@ -87,5 +99,11 @@ public class S3Util {
 	}
 
 
-
+	public void submitFile(String s3Path, File file) {
+		try {
+			s3Client.putObject(new PutObjectRequest(MainConstant.DCT_SOURCE,s3Path , file).withCannedAcl(CannedAccessControlList.PublicRead));
+		}catch (Exception e){
+			log.error("SUBMIT ERROR:{}",e.getMessage());
+		}
+	}
 }

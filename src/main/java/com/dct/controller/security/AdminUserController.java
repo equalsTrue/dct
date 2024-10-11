@@ -62,7 +62,7 @@ public class AdminUserController {
 	/**
 	 * @return
 	 */
-	@GetMapping(value = "/fetch/user")
+	@GetMapping(value = "/user/fetch")
 	@ApiOperation(value = "获取用户信息", notes = "获取用户的信息")
 	public ResponseInfoVO fetchUser(@RequestParam String username){
 		return ResponseInfoUtil.success(adminUserService.findUserByUsername(username));

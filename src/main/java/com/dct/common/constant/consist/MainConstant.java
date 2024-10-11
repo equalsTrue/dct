@@ -792,4 +792,5 @@ public class MainConstant {
     public static final String PARTNER_COMMISSION = "partner_commission";
     public static final String CREATOR_COMMISSION = "creator_commission";
     public static final String POST_TIME = "postTime";
+    public static final String DCT_SOURCE = "dct-gmv";
 }

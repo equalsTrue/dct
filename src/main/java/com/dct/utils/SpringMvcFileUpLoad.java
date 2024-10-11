@@ -1,14 +1,21 @@
 package com.dct.utils;
 
+import com.amazonaws.services.s3.model.CannedAccessControlList;
+import com.amazonaws.services.s3.model.ObjectMetadata;
+import com.amazonaws.services.s3.model.PutObjectRequest;
+import com.dct.common.constant.consist.MainConstant;
+import com.google.common.net.MediaType;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Component;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.File;
 import java.io.IOException;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
@@ -65,6 +72,45 @@ public class SpringMvcFileUpLoad {
 		}
 		return "";
 
+	}
+
+
+	@Async
+	public void uploadFilesToS3(Map<String, List<File>> completeS3Result) {
+		try {
+			List<File> creatorFileList = completeS3Result.get("creator");
+			List<File> pidFileList = completeS3Result.get("pid");
+			submitToS3(creatorFileList,"creator");
+			submitToS3(pidFileList,"pid");
+		}catch (Exception e){
+			log.error("SUBMIT S3 ERROR:{}",e.getStackTrace());
+
+		}
+
+	}
+
+
+	/**
+	 * 上传到S3.
+	 * @param fileList
+	 */
+	public void submitToS3(List<File> fileList, String type) {
+		if (fileList != null && fileList.size() > 0) {
+			fileList.stream().forEach(a->{
+				File file = a;
+				String s3Path = type + "/" + a.getName();
+				ObjectMetadata md = new ObjectMetadata();
+				md.setContentType(MediaType.JSON_UTF_8.toString());
+				// 上传到S3服务器，同时赋予该Object一个public read权限，以便通过URL直接访问
+				try {
+					s3Util.submitFile(s3Path,file);
+				}catch (Exception e){
+					log.error("SUBMIT S3 ERROR:{}",e.getStackTrace());
+				}
+
+			});
+
+		}
 	}
 
 

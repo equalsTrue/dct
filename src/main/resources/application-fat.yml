@@ -100,4 +100,4 @@ ip2region:
 
 
 s3:
-  bucketName: dct-video
+  bucketName: dct-gmv
