@@ -725,6 +725,10 @@ public class GmvAnalysisServiceImpl implements IGmvAnalysisService {
     private List<GmvDetailVo> generateSingleVideoList(JSONObject whereParam) {
         List<String> timeList = JSONObject.parseArray(whereParam.getJSONArray("time").toJSONString(), String.class);
         List<String> pidList = new ArrayList<>();
+        List<GmvDetailVo> videoAddList = new ArrayList<>();
+        if(timeList == null || timeList.size() == 0){
+            return videoAddList;
+        }
         if(whereParam.getJSONArray("pid") != null){
             pidList =  JSONObject.parseArray(whereParam.getJSONArray("pid").toJSONString(), String.class);
 
@@ -755,7 +759,7 @@ public class GmvAnalysisServiceImpl implements IGmvAnalysisService {
             });
             jsonObjectList.add(jsonObject);
         });
-        List<GmvDetailVo> videoAddList = JSONObject.parseArray(JSON.toJSONString(jsonObjectList), GmvDetailVo.class);
+        videoAddList  = JSONObject.parseArray(JSON.toJSONString(jsonObjectList), GmvDetailVo.class);
         return videoAddList;
     }
 
