@@ -34,7 +34,7 @@ public class CacheConfig {
         private Integer initCapacity;
     }
 
-    @Bean
+    @Bean("caffeineCacheManager")
     public CacheManager cacheManager(Ticker ticker) {
         SimpleCacheManager manager = new SimpleCacheManager();
         if (spec != null) {

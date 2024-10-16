@@ -170,4 +170,10 @@ public class GmvAnalysisController {
         return ResponseInfoUtil.success(result);
     }
 
+    @GetMapping(value = "/cache/gmv")
+    public ResponseInfoVO cacheGmv(){
+        gmvAnalysisService.cacheGmvInfo();
+        return ResponseInfoUtil.success();
+    }
+
 }

@@ -94,10 +94,10 @@ spring:
     type: caffeine
     caffeine:
       spec:
-        referrer:
-          expire-time: 3600
-          max-size: 100
-          init-capacity: 10
+        gmv:
+          expire-time: 518400
+          max-size: 1000000
+          init-capacity: 50
 
 ip2region:
   external: false

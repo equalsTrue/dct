@@ -70,4 +70,6 @@ public interface IGmvAnalysisService {
     void fetchGmvFile();
 
     void submitPicture();
+
+    void cacheGmvInfo();
 }

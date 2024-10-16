@@ -8,6 +8,7 @@ package com.dct.service.analysis.impl;/**
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
+import com.dct.common.config.CacheConfig;
 import com.dct.common.config.datasource.ClickHouseConfig;
 import com.dct.common.constant.consist.MainConstant;
 import com.dct.common.constant.enums.NumberEnum;
@@ -25,11 +26,15 @@ import com.dct.service.account.IAccountService;
 import com.dct.service.analysis.IGmvAnalysisService;
 import com.dct.utils.DateUtil;
 import com.dct.utils.SpringMvcFileUpLoad;
+import com.github.benmanes.caffeine.cache.Cache;
+import com.github.benmanes.caffeine.cache.Caffeine;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
+import org.checkerframework.checker.nullness.qual.NonNull;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.cache.CacheManager;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
@@ -54,6 +59,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 /**
@@ -79,7 +85,6 @@ public class GmvAnalysisServiceImpl implements IGmvAnalysisService {
     private AdminUserRepo adminUserRepo;
 
 
-
     @Value("${spring.datasource.druid.ck.url}")
     private String clickhouseUrl;
 
@@ -91,6 +96,8 @@ public class GmvAnalysisServiceImpl implements IGmvAnalysisService {
     @Value("${spring.datasource.druid.ck.password}")
     private String clickHousePassword;
 
+    @Resource(name = "caffeineCacheManager")
+    private CacheManager cacheManager;
 
 
     Map<String,Integer> gmvIndexMap = new HashMap<>();
@@ -127,7 +134,6 @@ public class GmvAnalysisServiceImpl implements IGmvAnalysisService {
     private ThreadPoolTaskExecutor taskExecutor;
 
 
-
     /**
      * 根据PID或者Creator分组查询.
      *
@@ -144,31 +150,13 @@ public class GmvAnalysisServiceImpl implements IGmvAnalysisService {
         }
         StringBuffer whereStr = generateListWhereStr(whereParam);
         StringBuffer sql = new StringBuffer();
+//        List<GmvDetailVo> gmvIndexList = new ArrayList<>();
         List<GmvDetailVo> gmvIndexList = generateGvmIndex(groupList, whereParam);
-        if (groupList.contains("product_id")) {
-//            sql.append("SELECT ");
-//            sql.append(generateCombine(groupList, metricsList,"product_id"));
-//            sql.append(" FROM (");
-//            sql.append(generateNormalQuery(groupList, metricsList, whereStr));
-//            sql.append(") as t1");
-//            sql.append(" left join ");
-//            sql.append("(");
-//            sql.append("SELECT picture,product_id from product_detail");
-//            sql.append(") as t2 ");
-//            sql.append(" on t1.product_id = t2.product_id");
-            sql.append(generateNormalQuery(groupList, metricsList, whereStr));
-        } else {
-            sql.append(generateNormalQuery(groupList, metricsList, whereStr));
-//            sql.append("SELECT ");
-//            sql.append(generateCombine(groupList, metricsList,"creator"));
-//            sql.append(" FROM (");
-//            sql.append(generateNormalQuery(groupList, metricsList, whereStr));
-//            sql.append(") as t1");
-//            sql.append(" left join ");
-//            sql.append("(");
-//            sql.append("SELECT profile_picture,creator from creator_detail");
-//            sql.append(") as t2 ");
-//            sql.append(" on t1.creator = t2.creator");
+        Integer page = whereParam.getInteger("page");
+        Integer limit = whereParam.getInteger("limit");
+        sql.append(generateNormalQuery(groupList, metricsList, whereStr));
+        if(page != null && limit != null){
+            sql.append(" limit " + limit + " offset (" + ( page -1)  + ") * " + limit);
         }
         List<Map<String, String>> results = generateQueryResult(sql);
         List<JSONObject> jsonObjectList = new ArrayList<>();
@@ -187,7 +175,6 @@ public class GmvAnalysisServiceImpl implements IGmvAnalysisService {
                 }
             });
             jsonObjectList.add(jsonObject);
-
         });
         List<GmvDetailVo> gmvList = JSONObject.parseArray(JSON.toJSONString(jsonObjectList), GmvDetailVo.class);
         if (groupList.contains("creator")) {
@@ -208,6 +195,13 @@ public class GmvAnalysisServiceImpl implements IGmvAnalysisService {
             }
         }else {
             gmvList.stream().forEach(a->{
+                String productParam = cacheManager.getCache("gmv").get(a.getProduct_id()) != null ? cacheManager.getCache("gmv").get(a.getProduct_id()).get().toString() : "";
+                if(StringUtils.isNotBlank(productParam)){
+                    GmvDetailVo gmvDetailVo = JSONObject.parseObject(productParam,GmvDetailVo.class);
+                    a.setProduct_name(gmvDetailVo.getProduct_name());
+                    a.setLevel_1_category(gmvDetailVo.getLevel_1_category());
+                    a.setLevel_2_category(gmvDetailVo.getLevel_2_category());
+                }
                 a.setProductPicture("https://dct-gmv.s3.ap-southeast-1.amazonaws.com/pid/" + a.getProduct_id() + ".png");
             });
         }
@@ -218,6 +212,13 @@ public class GmvAnalysisServiceImpl implements IGmvAnalysisService {
         pageVO.setList(gmvList);
         pageQueryVo.setPageVO(pageVO);
         return pageQueryVo;
+    }
+
+    private StringBuffer generatePidParamsSql() {
+        StringBuffer sql = new StringBuffer();
+        sql.append("SELECT DISTINCT product_id,product_name,level_1_category,level_2_category")
+                .append(" FROM gmv_detail");
+        return sql;
     }
 
     private void resetCreatorWhereParam(JSONObject whereParam) {
@@ -256,6 +257,8 @@ public class GmvAnalysisServiceImpl implements IGmvAnalysisService {
         invalidWhereParamList.add("user");
         invalidWhereParamList.add("userGroup");
         invalidWhereParamList.add("status");
+        invalidWhereParamList.add("limit");
+        invalidWhereParamList.add("page");
 //        whereParam.put("creator",creator);
         StringBuffer timeSql =  new StringBuffer();
         whereParam.keySet().forEach(keyStr -> {
@@ -1087,8 +1090,28 @@ public class GmvAnalysisServiceImpl implements IGmvAnalysisService {
 
     }
 
-
-
+    @Override
+    public void cacheGmvInfo() {
+        // 1.先从Caffeine缓存中读取
+        StringBuffer mapParamsSql = generatePidParamsSql();
+        List<Map<String, String>> paramsResult = generateQueryResult(mapParamsSql);
+        Cache<Object, Object> cache = Caffeine.newBuilder()
+                .initialCapacity(100)
+                .expireAfterWrite(30, TimeUnit.DAYS)
+                .maximumSize(10000000)
+                .build();
+        paramsResult.stream().forEach(a->{
+            String pid =  a.get("product_id");
+            String productName = a.get("product_name");
+            String level1 = a.get("level_1_category");
+            String level2 = a.get("level_2_category");
+            GmvDetailVo gmvDetailVo = new GmvDetailVo();
+            gmvDetailVo.setProduct_name(productName);
+            gmvDetailVo.setLevel_1_category(level1);
+            gmvDetailVo.setLevel_2_category(level2);
+            cacheManager.getCache("gmv").put(pid,JSON.toJSONString(gmvDetailVo));
+        });
+    }
 
 
     public void deleteFile(File excelFile) {
