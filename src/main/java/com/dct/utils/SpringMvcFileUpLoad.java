@@ -200,7 +200,7 @@ public class SpringMvcFileUpLoad {
 		return map;
 	}
 	private String getS3UrlHead(){
-		return "https://dct-video.s3.eu-central-1.amazonaws.com/";
+		return "https://dct-gmv.s3.ap-southeast-1.amazonaws.com/";
 	}
 
 }

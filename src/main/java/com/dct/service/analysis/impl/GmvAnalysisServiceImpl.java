@@ -1460,6 +1460,9 @@ public class GmvAnalysisServiceImpl implements IGmvAnalysisService {
         if(value.contains("$")){
             value = value.replaceAll("\\$","");
         }
+        if(value.contains(",")){
+            value = value.replaceAll(",","");
+        }
         value = StringUtils.isBlank(value) || value.equalsIgnoreCase(MainConstant.MID_LINE) ? "0" : value;
         return value;
     }
