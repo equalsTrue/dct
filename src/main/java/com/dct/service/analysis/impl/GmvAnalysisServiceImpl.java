@@ -24,6 +24,7 @@ import com.dct.repo.security.AdminRoleRepo;
 import com.dct.repo.security.AdminUserRepo;
 import com.dct.service.account.IAccountService;
 import com.dct.service.analysis.IGmvAnalysisService;
+import com.dct.service.sample.IBatchHandleService;
 import com.dct.utils.DateUtil;
 import com.dct.utils.SpringMvcFileUpLoad;
 import com.github.benmanes.caffeine.cache.Cache;
@@ -35,6 +36,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.cache.CacheManager;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
@@ -100,7 +102,7 @@ public class GmvAnalysisServiceImpl implements IGmvAnalysisService {
     private CacheManager cacheManager;
 
 
-    Map<String,Integer> gmvIndexMap = new HashMap<>();
+    Map<String, Integer> gmvIndexMap = new HashMap<>();
 
     /**
      * GMV 数据列.
@@ -134,6 +136,10 @@ public class GmvAnalysisServiceImpl implements IGmvAnalysisService {
     private ThreadPoolTaskExecutor taskExecutor;
 
 
+    @Autowired
+    private IBatchHandleService batchHandleService;
+
+
     /**
      * 根据PID或者Creator分组查询.
      *
@@ -145,7 +151,7 @@ public class GmvAnalysisServiceImpl implements IGmvAnalysisService {
         JSONObject whereParam = pageQueryVo.getPageFilterVo();
         List<String> groupList = pageQueryVo.getPageGroupVo();
         List<String> metricsList = pageQueryVo.getPageMetricsVo();
-        if(groupList.contains("creator")){
+        if (groupList.contains("creator")) {
             resetCreatorWhereParam(whereParam);
         }
         StringBuffer whereStr = generateListWhereStr(whereParam);
@@ -155,8 +161,8 @@ public class GmvAnalysisServiceImpl implements IGmvAnalysisService {
         Integer page = whereParam.getInteger("page");
         Integer limit = whereParam.getInteger("limit");
         sql.append(generateNormalQuery(groupList, metricsList, whereStr));
-        if(page != null && limit != null){
-            sql.append(" limit " + limit + " offset (" + ( page -1)  + ") * " + limit);
+        if (page != null && limit != null) {
+            sql.append(" limit " + limit + " offset (" + (page - 1) + ") * " + limit);
         }
         List<Map<String, String>> results = generateQueryResult(sql);
         List<JSONObject> jsonObjectList = new ArrayList<>();
@@ -165,25 +171,25 @@ public class GmvAnalysisServiceImpl implements IGmvAnalysisService {
             a.entrySet().stream().forEach(b -> {
                 String key = b.getKey();
                 String value = b.getValue();
-                if(key.equals("day")){
+                if (key.equals("day")) {
                     jsonObject.put("date", value);
-                }else {
+                } else {
                     jsonObject.put(key, value);
                 }
-                if(!groupList.contains("day")){
-                    jsonObject.put("date",MainConstant.TOTAL);
+                if (!groupList.contains("day")) {
+                    jsonObject.put("date", MainConstant.TOTAL);
                 }
             });
             jsonObjectList.add(jsonObject);
         });
         List<GmvDetailVo> gmvList = JSONObject.parseArray(JSON.toJSONString(jsonObjectList), GmvDetailVo.class);
         if (groupList.contains("creator")) {
-            gmvList.stream().forEach(a->{
+            gmvList.stream().forEach(a -> {
                 a.setCreatorPicture("https://dct-gmv.s3.ap-southeast-1.amazonaws.com/creator/" + a.getCreator() + ".png");
             });
             //补全归属人
             List<AccountModel> accountList = accountRepo.findAll();
-            if(accountList != null && accountList.size() > 0){
+            if (accountList != null && accountList.size() > 0) {
                 Map<String, String> accountMap = accountList.stream()
                         .filter(accountModel -> StringUtils.isNotBlank(accountModel.getCreator()) && StringUtils.isNotBlank(accountModel.getBelongPerson()))
                         .collect(Collectors.toMap(k -> k.getCreator(), v -> v.getBelongPerson()));
@@ -193,11 +199,11 @@ public class GmvAnalysisServiceImpl implements IGmvAnalysisService {
                     }
                 });
             }
-        }else {
-            gmvList.stream().forEach(a->{
+        } else {
+            gmvList.stream().forEach(a -> {
                 String productParam = cacheManager.getCache("gmv").get(a.getProduct_id()) != null ? cacheManager.getCache("gmv").get(a.getProduct_id()).get().toString() : "";
-                if(StringUtils.isNotBlank(productParam)){
-                    GmvDetailVo gmvDetailVo = JSONObject.parseObject(productParam,GmvDetailVo.class);
+                if (StringUtils.isNotBlank(productParam)) {
+                    GmvDetailVo gmvDetailVo = JSONObject.parseObject(productParam, GmvDetailVo.class);
                     a.setProduct_name(gmvDetailVo.getProduct_name());
                     a.setLevel_1_category(gmvDetailVo.getLevel_1_category());
                     a.setLevel_2_category(gmvDetailVo.getLevel_2_category());
@@ -207,7 +213,7 @@ public class GmvAnalysisServiceImpl implements IGmvAnalysisService {
         }
         List<GmvDetailVo> addVideoList = generateAddVideoList(groupList, whereParam);
         List<GmvDetailVo> videoList = generateVideoList(groupList, whereParam);
-        formatIndexAndVideoAdd(gmvList, gmvIndexList, addVideoList,videoList, groupList);
+        formatIndexAndVideoAdd(gmvList, gmvIndexList, addVideoList, videoList, groupList);
         PageVO pageVO = new PageVO();
         pageVO.setList(gmvList);
         pageQueryVo.setPageVO(pageVO);
@@ -226,28 +232,28 @@ public class GmvAnalysisServiceImpl implements IGmvAnalysisService {
         List<String> userGroupList = new ArrayList<>();
         List<Integer> statusList = new ArrayList<>();
         List<String> keyList = whereParam.keySet().stream().collect(Collectors.toList());
-        for(String keyStr : keyList){
-            if(keyStr.equals("user")){
+        for (String keyStr : keyList) {
+            if (keyStr.equals("user")) {
                 userList = JSONObject.parseArray(whereParam.getJSONArray(keyStr).toJSONString(), String.class);
             }
-            if(keyStr.equals("userGroup")){
+            if (keyStr.equals("userGroup")) {
                 userGroupList = JSONObject.parseArray(whereParam.getJSONArray(keyStr).toJSONString(), String.class);
             }
-            if(keyStr.equals("status")){
+            if (keyStr.equals("status")) {
                 statusList = JSONObject.parseArray(whereParam.getJSONArray(keyStr).toJSONString(), Integer.class);
             }
         }
-        if(userList.size()>0 || userGroupList.size() >0 || statusList.size() >0 ){
+        if (userList.size() > 0 || userGroupList.size() > 0 || statusList.size() > 0) {
             JSONObject params = new JSONObject();
-            params.put("belongPerson",userList);
-            params.put("userGroup",userGroupList);
-            params.put("status",statusList);
+            params.put("belongPerson", userList);
+            params.put("userGroup", userGroupList);
+            params.put("status", statusList);
 
             List<AccountModel> creatorList = accountService.fetchAccountList(params).getList();
-            List<String> newCreatorList = creatorList.stream().map(a->a.getCreator()).collect(Collectors.toList());
-            List<String> creatorParamList =  JSONObject.parseArray(whereParam.getJSONArray("creator").toJSONString(), String.class);
+            List<String> newCreatorList = creatorList.stream().map(a -> a.getCreator()).collect(Collectors.toList());
+            List<String> creatorParamList = JSONObject.parseArray(whereParam.getJSONArray("creator").toJSONString(), String.class);
             creatorParamList.addAll(newCreatorList);
-            whereParam.put("creator",creatorParamList);
+            whereParam.put("creator", creatorParamList);
         }
     }
 
@@ -260,13 +266,13 @@ public class GmvAnalysisServiceImpl implements IGmvAnalysisService {
         invalidWhereParamList.add("limit");
         invalidWhereParamList.add("page");
 //        whereParam.put("creator",creator);
-        StringBuffer timeSql =  new StringBuffer();
+        StringBuffer timeSql = new StringBuffer();
         whereParam.keySet().forEach(keyStr -> {
-            if(!invalidWhereParamList.contains(keyStr)){
+            if (!invalidWhereParamList.contains(keyStr)) {
                 List<String> filters = JSONObject.parseArray(whereParam.getJSONArray(keyStr).toJSONString(), String.class);
                 if ("time".equals(keyStr)) {
                     if (filters.size() == 2) {
-                       timeSql.append("toDateTime(date, 'Asia/Shanghai')>='" + filters.get(0) + "' and toDateTime(date, 'Asia/Shanghai')<='" + filters.get(1) + "'");
+                        timeSql.append("toDateTime(date, 'Asia/Shanghai')>='" + filters.get(0) + "' and toDateTime(date, 'Asia/Shanghai')<='" + filters.get(1) + "'");
                     }
                 } else {
                     if (filters.size() > 0) {
@@ -288,12 +294,13 @@ public class GmvAnalysisServiceImpl implements IGmvAnalysisService {
 
     /**
      * 生成对应的creator.
+     *
      * @param params
      * @return
      */
     private List<String> generateCreator(JSONObject params) {
         List<AccountModel> accountModelList = accountService.fetchAccountList(params).getList();
-        List<String> accountIdList = accountModelList.stream().map(a->a.getCreator()).collect(Collectors.toList());
+        List<String> accountIdList = accountModelList.stream().map(a -> a.getCreator()).collect(Collectors.toList());
         return accountIdList;
     }
 
@@ -307,10 +314,10 @@ public class GmvAnalysisServiceImpl implements IGmvAnalysisService {
      * @param groupList
      */
     private void formatIndexAndVideoAdd(List<GmvDetailVo> gmvList, List<GmvDetailVo> gmvIndexList,
-                                        List<GmvDetailVo> addVideoList,List<GmvDetailVo> videoList, List<String> groupList) {
+                                        List<GmvDetailVo> addVideoList, List<GmvDetailVo> videoList, List<String> groupList) {
         Map<String, Integer> indexMap = new HashMap<>();
-        Map<String,Integer> addVideoMap = new HashMap<>();
-        Map<String,Integer> videoMap = new HashMap<>();
+        Map<String, Integer> addVideoMap = new HashMap<>();
+        Map<String, Integer> videoMap = new HashMap<>();
         gmvIndexList.stream().forEach(a -> {
             String pid = a.getProduct_id();
             String creator = a.getCreator();
@@ -323,11 +330,11 @@ public class GmvAnalysisServiceImpl implements IGmvAnalysisService {
             }
             indexMap.put(keyBuffer.toString(), a.getIndex());
         });
-        addVideoList.stream().forEach(a->{
+        addVideoList.stream().forEach(a -> {
             String pid = a.getProduct_id();
             String creator = a.getCreator();
             StringBuffer keyBuffer = new StringBuffer();
-            if(groupList.contains("day")){
+            if (groupList.contains("day")) {
                 keyBuffer.append(a.getDate() + "_");
             }
             if (StringUtils.isNotBlank(pid)) {
@@ -337,11 +344,11 @@ public class GmvAnalysisServiceImpl implements IGmvAnalysisService {
             }
             addVideoMap.put(keyBuffer.toString(), a.getAddVideos());
         });
-        videoList.stream().forEach(a->{
+        videoList.stream().forEach(a -> {
             String pid = a.getProduct_id();
             String creator = a.getCreator();
             StringBuffer keyBuffer = new StringBuffer();
-            if(groupList.contains("day")){
+            if (groupList.contains("day")) {
                 keyBuffer.append(a.getDate() + "_");
             }
             if (StringUtils.isNotBlank(pid)) {
@@ -351,7 +358,7 @@ public class GmvAnalysisServiceImpl implements IGmvAnalysisService {
             }
             videoMap.put(keyBuffer.toString(), a.getVideos());
         });
-        gmvList.stream().forEach(a->{
+        gmvList.stream().forEach(a -> {
             String pid = a.getProduct_id();
             String creator = a.getCreator();
             String key = "";
@@ -363,14 +370,14 @@ public class GmvAnalysisServiceImpl implements IGmvAnalysisService {
                 key = creator;
             }
             String day = a.getDate();
-            if(groupList.contains("day")){
+            if (groupList.contains("day")) {
                 videoBuffer.append(day + "_");
             }
             videoBuffer.append(key);
             Integer addVideo = addVideoMap.get(videoBuffer.toString());
             Integer video = videoMap.get(videoBuffer.toString());
             a.setVideos(video != null ? video : 0);
-            a.setAddVideos(addVideo != null ?addVideo : 0);
+            a.setAddVideos(addVideo != null ? addVideo : 0);
             IndexBuffer.append(day + "_");
             IndexBuffer.append(key);
             Integer index = indexMap.get(IndexBuffer.toString());
@@ -382,11 +389,11 @@ public class GmvAnalysisServiceImpl implements IGmvAnalysisService {
         List<String> timeList = JSONObject.parseArray(whereParam.getJSONArray("time").toJSONString(), String.class);
         StringBuffer sql = new StringBuffer();
         boolean groupDay = false;
-        if(groupList.contains("day")){
+        if (groupList.contains("day")) {
             groupDay = true;
         }
         sql.append(" SELECT count(vid)as addVideos,");
-        if(groupDay){
+        if (groupDay) {
             sql.append("toDate(date)AS day,");
         }
         if (groupList.contains("product_id")) {
@@ -401,7 +408,7 @@ public class GmvAnalysisServiceImpl implements IGmvAnalysisService {
         } else {
             sql.append(" GROUP BY creator");
         }
-        if(groupDay){
+        if (groupDay) {
             sql.append(",day");
         }
         List<Map<String, String>> results = generateQueryResult(sql);
@@ -411,9 +418,9 @@ public class GmvAnalysisServiceImpl implements IGmvAnalysisService {
             a.entrySet().stream().forEach(b -> {
                 String key = b.getKey();
                 String value = b.getValue();
-                if(key.equals("day")){
+                if (key.equals("day")) {
                     jsonObject.put("date", value);
-                }else {
+                } else {
                     jsonObject.put(key, value);
                 }
             });
@@ -428,11 +435,11 @@ public class GmvAnalysisServiceImpl implements IGmvAnalysisService {
         List<String> timeList = JSONObject.parseArray(whereParam.getJSONArray("time").toJSONString(), String.class);
         StringBuffer sql = new StringBuffer();
         boolean groupDay = false;
-        if(groupList.contains("day")){
+        if (groupList.contains("day")) {
             groupDay = true;
         }
         sql.append(" SELECT count(vid)as videos,");
-        if(groupDay){
+        if (groupDay) {
             sql.append("toDate(date)AS day,");
         }
         if (groupList.contains("product_id")) {
@@ -447,7 +454,7 @@ public class GmvAnalysisServiceImpl implements IGmvAnalysisService {
         } else {
             sql.append(" GROUP BY creator");
         }
-        if(groupDay){
+        if (groupDay) {
             sql.append(",day");
         }
         List<Map<String, String>> results = generateQueryResult(sql);
@@ -457,9 +464,9 @@ public class GmvAnalysisServiceImpl implements IGmvAnalysisService {
             a.entrySet().stream().forEach(b -> {
                 String key = b.getKey();
                 String value = b.getValue();
-                if(key.equals("day")){
+                if (key.equals("day")) {
                     jsonObject.put("date", value);
-                }else {
+                } else {
                     jsonObject.put(key, value);
                 }
             });
@@ -501,13 +508,13 @@ public class GmvAnalysisServiceImpl implements IGmvAnalysisService {
             a.entrySet().stream().forEach(b -> {
                 String key = b.getKey();
                 String value = b.getValue();
-                if(key.equals("day")){
-                    jsonObject.put("date",value);
-                }else {
+                if (key.equals("day")) {
+                    jsonObject.put("date", value);
+                } else {
                     jsonObject.put(key, value);
                 }
-                if(!groupList.contains("day")){
-                    jsonObject.put("date",MainConstant.TOTAL);
+                if (!groupList.contains("day")) {
+                    jsonObject.put("date", MainConstant.TOTAL);
                 }
             });
             jsonObjectList.add(jsonObject);
@@ -557,7 +564,7 @@ public class GmvAnalysisServiceImpl implements IGmvAnalysisService {
      */
     private StringBuffer generateWhereStr(JSONObject whereParam) {
         StringBuffer whereStr = new StringBuffer();
-        StringBuffer timeSql =  new StringBuffer();
+        StringBuffer timeSql = new StringBuffer();
         whereParam.keySet().forEach(keyStr -> {
             List<String> filters = JSONObject.parseArray(whereParam.getJSONArray(keyStr).toJSONString(), String.class);
             if ("time".equals(keyStr)) {
@@ -603,9 +610,9 @@ public class GmvAnalysisServiceImpl implements IGmvAnalysisService {
             a.entrySet().stream().forEach(b -> {
                 String key = b.getKey();
                 String value = b.getValue();
-                if(key.equals("day")){
-                    jsonObject.put("date",value);
-                }else {
+                if (key.equals("day")) {
+                    jsonObject.put("date", value);
+                } else {
                     jsonObject.put(key, value);
                 }
             });
@@ -613,8 +620,8 @@ public class GmvAnalysisServiceImpl implements IGmvAnalysisService {
         });
         List<GmvDetailVo> gmvList = JSONObject.parseArray(JSON.toJSONString(jsonObjectList), GmvDetailVo.class);
         List<AccountModel> accountList = accountRepo.findAll();
-        if(accountList != null && accountList.size() >0){
-            Map<String, String> accountMap = accountList.stream().collect(Collectors.toMap(k -> k.getCreator(), v -> StringUtils.isNotBlank(v.getManager()) ? v.getManager() : "" ));
+        if (accountList != null && accountList.size() > 0) {
+            Map<String, String> accountMap = accountList.stream().collect(Collectors.toMap(k -> k.getCreator(), v -> StringUtils.isNotBlank(v.getManager()) ? v.getManager() : ""));
             gmvList.stream().forEach(a -> {
                 if (accountMap.containsKey(a.getCreator())) {
                     a.setBelong_person(accountMap.get(a.getCreator()));
@@ -623,7 +630,7 @@ public class GmvAnalysisServiceImpl implements IGmvAnalysisService {
         }
         List<GmvDetailVo> addVideoList = generateSingleAddVideoList(whereParam);
         List<GmvDetailVo> videoList = generateSingleVideoList(whereParam);
-        combineAddVideoList(gmvList,addVideoList,videoList,groupList);
+        combineAddVideoList(gmvList, addVideoList, videoList, groupList);
 
 //        gmvList.stream().forEach(a->{
 //            String key = a.getDate() + "_" + a.getCreator() + "_" + a.getProduct_id();
@@ -637,9 +644,9 @@ public class GmvAnalysisServiceImpl implements IGmvAnalysisService {
     }
 
     private void combineAddVideoList(List<GmvDetailVo> gmvList, List<GmvDetailVo> addVideoList, List<GmvDetailVo> videoList, List<String> groupList) {
-        Map<String,Integer> addVideoMap = new HashMap<>();
-        Map<String,Integer> videoMap = new HashMap<>();
-        addVideoList.stream().forEach(a->{
+        Map<String, Integer> addVideoMap = new HashMap<>();
+        Map<String, Integer> videoMap = new HashMap<>();
+        addVideoList.stream().forEach(a -> {
             String pid = a.getProduct_id();
             String creator = a.getCreator();
             StringBuffer keyBuffer = new StringBuffer();
@@ -651,7 +658,7 @@ public class GmvAnalysisServiceImpl implements IGmvAnalysisService {
             addVideoMap.put(keyBuffer.toString(), a.getAddVideos());
         });
 
-        videoList.stream().forEach(a->{
+        videoList.stream().forEach(a -> {
             String pid = a.getProduct_id();
             String creator = a.getCreator();
             StringBuffer keyBuffer = new StringBuffer();
@@ -662,7 +669,7 @@ public class GmvAnalysisServiceImpl implements IGmvAnalysisService {
             }
             videoMap.put(keyBuffer.toString(), a.getVideos());
         });
-        gmvList.stream().forEach(a->{
+        gmvList.stream().forEach(a -> {
             String pid = a.getProduct_id();
             String creator = a.getCreator();
             a.setCreatorPicture("https://dct-gmv.s3.ap-southeast-1.amazonaws.com/creator/" + a.getCreator() + ".png");
@@ -686,26 +693,26 @@ public class GmvAnalysisServiceImpl implements IGmvAnalysisService {
     private List<GmvDetailVo> generateSingleAddVideoList(JSONObject whereParam) {
         List<String> timeList = JSONObject.parseArray(whereParam.getJSONArray("time").toJSONString(), String.class);
         List<GmvDetailVo> videoAddList = new ArrayList<>();
-        if(timeList == null || timeList.size() == 0){
+        if (timeList == null || timeList.size() == 0) {
             return videoAddList;
         }
         List<String> pidList = new ArrayList<>();
-        if(whereParam.getJSONArray("pid") != null){
-            pidList =  JSONObject.parseArray(whereParam.getJSONArray("pid").toJSONString(), String.class);
+        if (whereParam.getJSONArray("pid") != null) {
+            pidList = JSONObject.parseArray(whereParam.getJSONArray("pid").toJSONString(), String.class);
 
         }
         List<String> creatorList = new ArrayList<>();
-        if(whereParam.getJSONArray("creator") != null){
+        if (whereParam.getJSONArray("creator") != null) {
             creatorList = JSONObject.parseArray(whereParam.getJSONArray("creator").toJSONString(), String.class);
         }
         StringBuffer sql = new StringBuffer();
         sql.append(" SELECT count(vid)as addVideos,toDate(date)AS day,product_id,creator");
         sql.append(" FROM video_detail where");
         sql.append(" toDateTime(postTime, 'Asia/Shanghai')>='" + timeList.get(0) + "' AND toDateTime(postTime, 'Asia/Shanghai')<='" + timeList.get(1) + "'");
-        if(pidList != null && pidList.size() > 0){
+        if (pidList != null && pidList.size() > 0) {
             sql.append(" AND product_id = '" + pidList.get(0) + "'");
         }
-        if(creatorList != null && creatorList.size() > 0){
+        if (creatorList != null && creatorList.size() > 0) {
             sql.append(" AND creator = '" + creatorList.get(0) + "'");
         }
         sql.append(" GROUP BY day,product_id,creator");
@@ -729,25 +736,25 @@ public class GmvAnalysisServiceImpl implements IGmvAnalysisService {
         List<String> timeList = JSONObject.parseArray(whereParam.getJSONArray("time").toJSONString(), String.class);
         List<String> pidList = new ArrayList<>();
         List<GmvDetailVo> videoAddList = new ArrayList<>();
-        if(timeList == null || timeList.size() == 0){
+        if (timeList == null || timeList.size() == 0) {
             return videoAddList;
         }
-        if(whereParam.getJSONArray("pid") != null){
-            pidList =  JSONObject.parseArray(whereParam.getJSONArray("pid").toJSONString(), String.class);
+        if (whereParam.getJSONArray("pid") != null) {
+            pidList = JSONObject.parseArray(whereParam.getJSONArray("pid").toJSONString(), String.class);
 
         }
         List<String> creatorList = new ArrayList<>();
-        if(whereParam.getJSONArray("creator") != null){
+        if (whereParam.getJSONArray("creator") != null) {
             creatorList = JSONObject.parseArray(whereParam.getJSONArray("creator").toJSONString(), String.class);
         }
         StringBuffer sql = new StringBuffer();
         sql.append(" SELECT count(vid)as videos,toDate(date)AS day,product_id,creator");
         sql.append(" FROM video_detail where");
         sql.append(" toDateTime(date, 'Asia/Shanghai')>='" + timeList.get(0) + "' AND toDateTime(date, 'Asia/Shanghai')<='" + timeList.get(1) + "'");
-        if(pidList != null && pidList.size() > 0){
+        if (pidList != null && pidList.size() > 0) {
             sql.append(" AND product_id = '" + pidList.get(0) + "'");
         }
-        if(creatorList != null && creatorList.size() > 0){
+        if (creatorList != null && creatorList.size() > 0) {
             sql.append(" AND creator = '" + creatorList.get(0) + "'");
         }
         sql.append(" GROUP BY day,product_id,creator");
@@ -762,12 +769,12 @@ public class GmvAnalysisServiceImpl implements IGmvAnalysisService {
             });
             jsonObjectList.add(jsonObject);
         });
-        videoAddList  = JSONObject.parseArray(JSON.toJSONString(jsonObjectList), GmvDetailVo.class);
+        videoAddList = JSONObject.parseArray(JSON.toJSONString(jsonObjectList), GmvDetailVo.class);
         return videoAddList;
     }
 
-    private Map<String,Integer> generatePerGvmIndex(List<String> groupList, JSONObject whereParam) {
-        Map<String,Integer> gmvIndexMap = new HashMap<>();
+    private Map<String, Integer> generatePerGvmIndex(List<String> groupList, JSONObject whereParam) {
+        Map<String, Integer> gmvIndexMap = new HashMap<>();
         List<String> timeList = JSONObject.parseArray(whereParam.getJSONArray("time").toJSONString(), String.class);
         StringBuffer sql = new StringBuffer();
         sql.append(" SELECT toDate(date)AS day,creator, product_id,sum(gmv)as gmv");
@@ -776,14 +783,14 @@ public class GmvAnalysisServiceImpl implements IGmvAnalysisService {
         sql.append(" GROUP BY product_id,creator,day");
         sql.append(" ORDER BY gmv desc");
         List<Map<String, String>> results = generateQueryResult(sql);
-        for(Map<String,String> map : results){
+        for (Map<String, String> map : results) {
 
 
             taskExecutor.submit(new Runnable() {
                 @Override
                 public void run() {
                     int index = results.indexOf(map) + 1;
-                    generateData(map,index,gmvIndexMap);
+                    generateData(map, index, gmvIndexMap);
 
                 }
             });
@@ -796,12 +803,12 @@ public class GmvAnalysisServiceImpl implements IGmvAnalysisService {
         String key = "";
         StringBuffer buffer = new StringBuffer();
         results.entrySet().stream().forEach(b -> {
-            if(!b.getKey().equals("gmv")){
+            if (!b.getKey().equals("gmv")) {
                 buffer.append(b.getValue());
                 buffer.append("##");
             }
         });
-        key = buffer.toString().substring(0,buffer.toString().length() -2);
+        key = buffer.toString().substring(0, buffer.toString().length() - 2);
         gmvDataIndex.put(key, index);
     }
 
@@ -816,11 +823,11 @@ public class GmvAnalysisServiceImpl implements IGmvAnalysisService {
         List<String> pidList = JSONObject.parseArray(whereParam.getJSONArray("product_id").toJSONString(), String.class);
         String creator = "";
         String pid = "";
-        if(creatorList.size() > 0){
+        if (creatorList.size() > 0) {
             creator = creatorList.get(0);
         }
-        if(pidList.size() > 0){
-            pid  = pidList.get(0);
+        if (pidList.size() > 0) {
+            pid = pidList.get(0);
         }
         StringBuffer sql = new StringBuffer();
 //        sql.append("SELECT ");
@@ -842,9 +849,9 @@ public class GmvAnalysisServiceImpl implements IGmvAnalysisService {
             a.entrySet().stream().forEach(b -> {
                 String key = b.getKey();
                 String value = b.getValue();
-                if(key.equals("day")){
-                    jsonObject.put("date",value);
-                }else {
+                if (key.equals("day")) {
+                    jsonObject.put("date", value);
+                } else {
                     jsonObject.put(key, value);
                 }
             });
@@ -853,7 +860,7 @@ public class GmvAnalysisServiceImpl implements IGmvAnalysisService {
         List<GmvDetailVo> gmvList = JSONObject.parseArray(JSON.toJSONString(jsonObjectList), GmvDetailVo.class);
         List<GmvDetailVo> addVideoList = generateSingleAddVideoList(whereParam);
         List<GmvDetailVo> videoList = generateSingleVideoList(whereParam);
-        combineAddVideoList(gmvList,addVideoList,videoList,groupList);
+        combineAddVideoList(gmvList, addVideoList, videoList, groupList);
 //        for(GmvDetailVo gmvDetailVo : gmvList){
 //            String finalCreator = StringUtils.isNotBlank(gmvDetailVo.getCreator()) ? gmvDetailVo.getCreator() : creator;
 //            String finalPid = StringUtils.isNotBlank(gmvDetailVo.getProduct_id()) ? gmvDetailVo.getProduct_id() : pid;
@@ -882,17 +889,17 @@ public class GmvAnalysisServiceImpl implements IGmvAnalysisService {
         JSONArray postTime = params.getJSONArray("postTime");
         List<String> timeList = JSONArray.parseArray(JSON.toJSONString(time), String.class);
         List<String> postTimeList = JSONArray.parseArray(JSON.toJSONString(postTime), String.class);
-        List<VideoDetailVo> videoGmvIndexList = generateVideoIndex(pid,creator,timeList,postTimeList);
+        List<VideoDetailVo> videoGmvIndexList = generateVideoIndex(pid, creator, timeList, postTimeList);
         StringBuffer sql = new StringBuffer();
         sql.append("SELECT vid,url,sum(video_views)as video_views,sum(gmv)as gmv,toDate(date)AS day");
         sql.append(" FROM video_detail where ");
-        if(timeList != null && timeList.size() > 0 ){
+        if (timeList != null && timeList.size() > 0) {
             sql.append(" toDateTime(date, 'Asia/Shanghai')>='" + timeList.get(0) + "' and toDateTime(date, 'Asia/Shanghai')<='" + timeList.get(1) + "' AND ");
         }
-        if(postTimeList != null && postTimeList.size() > 0 ){
+        if (postTimeList != null && postTimeList.size() > 0) {
             sql.append("  toDateTime(postTime, 'Asia/Shanghai')>='" + postTimeList.get(0) + "' and toDateTime(postTime, 'Asia/Shanghai')<='" + postTimeList.get(1) + "' AND ");
         }
-        if(StringUtils.isNotBlank(creator) && StringUtils.isNotBlank(pid)){
+        if (StringUtils.isNotBlank(creator) && StringUtils.isNotBlank(pid)) {
             sql.append(" product_id = '" + pid + "'");
             sql.append(" AND ");
             sql.append(" creator = '" + creator + "'");
@@ -900,7 +907,7 @@ public class GmvAnalysisServiceImpl implements IGmvAnalysisService {
             if (StringUtils.isNotBlank(pid)) {
                 sql.append(" product_id = '" + pid + "'");
             }
-            if(StringUtils.isNotBlank(creator)){
+            if (StringUtils.isNotBlank(creator)) {
                 sql.append(" creator = '" + creator + "'");
             }
         }
@@ -913,17 +920,17 @@ public class GmvAnalysisServiceImpl implements IGmvAnalysisService {
             a.entrySet().stream().forEach(b -> {
                 String key = b.getKey();
                 String value = b.getValue();
-                if(key.equals("day")){
+                if (key.equals("day")) {
                     jsonObject.put("time", value);
-                }else {
+                } else {
                     jsonObject.put(key, value);
                 }
             });
             jsonObjectList.add(jsonObject);
         });
         List<VideoDetailVo> videoList = JSONObject.parseArray(JSON.toJSONString(jsonObjectList), VideoDetailVo.class);
-        Map<String,Integer> indexMap = videoGmvIndexList.stream().collect(Collectors.toMap(k->k.getVid(),v->v.getIndex()));
-        for(VideoDetailVo videoDetailVo:videoList){
+        Map<String, Integer> indexMap = videoGmvIndexList.stream().collect(Collectors.toMap(k -> k.getVid(), v -> v.getIndex()));
+        for (VideoDetailVo videoDetailVo : videoList) {
             videoDetailVo.setIndex(indexMap.get(videoDetailVo.getVid()));
         }
         return videoList;
@@ -932,9 +939,9 @@ public class GmvAnalysisServiceImpl implements IGmvAnalysisService {
     private List<VideoDetailVo> generateVideoIndex(String pid, String creator, List<String> timeList, List<String> postTimeList) {
         StringBuffer sql = new StringBuffer();
         List<String> queryTimeList = new ArrayList<>();
-        if(timeList != null && timeList.size() > 0 ){
+        if (timeList != null && timeList.size() > 0) {
             queryTimeList = timeList;
-        }else if(postTimeList != null && postTimeList.size() > 0){
+        } else if (postTimeList != null && postTimeList.size() > 0) {
             queryTimeList = postTimeList;
         }
         sql.append(" SELECT sum(gmv)as gmv,toDate(date)AS day,vid");
@@ -950,9 +957,9 @@ public class GmvAnalysisServiceImpl implements IGmvAnalysisService {
             a.entrySet().stream().forEach(b -> {
                 String key = b.getKey();
                 String value = b.getValue();
-                if(key.equals("day")){
-                    jsonObject.put("date",value);
-                }else {
+                if (key.equals("day")) {
+                    jsonObject.put("date", value);
+                } else {
                     jsonObject.put(key, value);
                 }
             });
@@ -966,7 +973,7 @@ public class GmvAnalysisServiceImpl implements IGmvAnalysisService {
     public JSONObject fetchQueryPidListParams(String creator) {
         StringBuffer sql = new StringBuffer();
         sql.append("SELECT product_id,level_1_category,level_2_category,campaign_id FROM gmv_detail ");
-        if(!(StringUtils.isBlank(creator) || creator.equals("undefined"))){
+        if (!(StringUtils.isBlank(creator) || creator.equals("undefined"))) {
             sql.append(" where creator = '" + creator + "'");
         }
         sql.append(" group by product_id,level_1_category,level_2_category,campaign_id");
@@ -975,11 +982,11 @@ public class GmvAnalysisServiceImpl implements IGmvAnalysisService {
         List<String> level1List = new ArrayList<>();
         List<String> level2List = new ArrayList<>();
         List<String> cidList = new ArrayList<>();
-        results.stream().forEach(a->{
+        results.stream().forEach(a -> {
             a.entrySet().stream().forEach(b -> {
                 String key = b.getKey();
                 String value = b.getValue();
-                switch (key){
+                switch (key) {
                     case "product_id":
                         pidList.add(value);
                         break;
@@ -997,10 +1004,10 @@ public class GmvAnalysisServiceImpl implements IGmvAnalysisService {
             });
         });
         JSONObject params = new JSONObject();
-        params.put("pid",pidList.stream().distinct());
-        params.put("level_1_category",level1List.stream().distinct());
-        params.put("level_2_category",level2List.stream().distinct());
-        params.put("cid",cidList.stream().distinct());
+        params.put("pid", pidList.stream().distinct());
+        params.put("level_1_category", level1List.stream().distinct());
+        params.put("level_2_category", level2List.stream().distinct());
+        params.put("cid", cidList.stream().distinct());
         return params;
     }
 
@@ -1010,11 +1017,11 @@ public class GmvAnalysisServiceImpl implements IGmvAnalysisService {
         sql.append("SELECT creator FROM gmv_detail GROUP BY creator ");
         List<Map<String, String>> results = generateQueryResult(sql);
         List<String> creatorList = new ArrayList<>();
-        results.stream().forEach(a->{
+        results.stream().forEach(a -> {
             a.entrySet().stream().forEach(b -> {
                 String key = b.getKey();
                 String value = b.getValue();
-                switch (key){
+                switch (key) {
                     case "creator":
                         creatorList.add(value);
                         break;
@@ -1023,21 +1030,21 @@ public class GmvAnalysisServiceImpl implements IGmvAnalysisService {
             });
         });
         JSONObject params = new JSONObject();
-        params.put("creator",creatorList.stream().filter(a->StringUtils.isNotBlank(a)));
-        List<String> userList = adminUserRepo.findAll().stream().map(a->a.getUsername()).collect(Collectors.toList());
+        params.put("creator", creatorList.stream().filter(a -> StringUtils.isNotBlank(a)));
+        List<String> userList = adminUserRepo.findAll().stream().map(a -> a.getUsername()).collect(Collectors.toList());
         List<String> userGroupList = adminRoleRepo.findAllRoleName();
-        params.put("user",userList);
-        params.put("userGroup",userGroupList);
+        params.put("user", userList);
+        params.put("userGroup", userGroupList);
         return params;
     }
 
     @Override
     public void handleTkReport(MultipartFile gmvFile, MultipartFile vidFile, String account, String time, String country) {
-        if(gmvFile != null){
-            handleGmvFile(gmvFile,account,time,country);
+        if (gmvFile != null) {
+            handleGmvFile(gmvFile, account, time, country);
         }
-        if(vidFile != null){
-            handleVidFile(vidFile,account,time,country);
+        if (vidFile != null) {
+            handleVidFile(vidFile, account, time, country);
         }
 
     }
@@ -1050,9 +1057,9 @@ public class GmvAnalysisServiceImpl implements IGmvAnalysisService {
         try {
             File gmvFile = new File(path + "/gmv.csv");
             File vidFile = new File(path + "/vid.csv");
-            importCsvFile(gmvFile,"","","gmv","");
-            importCsvFile(vidFile,"","","vid","");
-        }catch (Exception e){
+            importCsvFile(gmvFile, "", "", "gmv", "");
+            importCsvFile(vidFile, "", "", "vid", "");
+        } catch (Exception e) {
 
         }
     }
@@ -1065,27 +1072,27 @@ public class GmvAnalysisServiceImpl implements IGmvAnalysisService {
         File pidFolder = new File("/Users/lichen/Downloads/pid"); // 替换为你的文件夹路径
         File[] pidListOfFiles = pidFolder.listFiles();
         List<File> pidFileList = new ArrayList<>();
-       try {
-           for (File file : creatorListOfFiles) {
-               if (file.isFile()) {
-                   creatorFileList.add(file);
+        try {
+            for (File file : creatorListOfFiles) {
+                if (file.isFile()) {
+                    creatorFileList.add(file);
 
-               }
-           }
+                }
+            }
 
-           for (File file : pidListOfFiles) {
-               if (file.isFile()) {
-                   pidFileList.add(file);
+            for (File file : pidListOfFiles) {
+                if (file.isFile()) {
+                    pidFileList.add(file);
 
-               }
-           }
-           Map<String,List<File>> submitMap = new HashMap<>();
-           submitMap.put("creator",creatorFileList);
-           submitMap.put("pid",pidFileList);
-           fileUpLoad.uploadFilesToS3(submitMap);
-       }catch (Exception e){
+                }
+            }
+            Map<String, List<File>> submitMap = new HashMap<>();
+            submitMap.put("creator", creatorFileList);
+            submitMap.put("pid", pidFileList);
+            fileUpLoad.uploadFilesToS3(submitMap);
+        } catch (Exception e) {
 
-       }
+        }
 
 
     }
@@ -1100,8 +1107,8 @@ public class GmvAnalysisServiceImpl implements IGmvAnalysisService {
                 .expireAfterWrite(30, TimeUnit.DAYS)
                 .maximumSize(10000000)
                 .build();
-        paramsResult.stream().forEach(a->{
-            String pid =  a.get("product_id");
+        paramsResult.stream().forEach(a -> {
+            String pid = a.get("product_id");
             String productName = a.get("product_name");
             String level1 = a.get("level_1_category");
             String level2 = a.get("level_2_category");
@@ -1109,8 +1116,44 @@ public class GmvAnalysisServiceImpl implements IGmvAnalysisService {
             gmvDetailVo.setProduct_name(productName);
             gmvDetailVo.setLevel_1_category(level1);
             gmvDetailVo.setLevel_2_category(level2);
-            cacheManager.getCache("gmv").put(pid,JSON.toJSONString(gmvDetailVo));
+            cacheManager.getCache("gmv").put(pid, JSON.toJSONString(gmvDetailVo));
         });
+    }
+
+    @Override
+    public void handleCreatorType() {
+        StringBuffer sql = new StringBuffer();
+        sql.append("select toDate(date)as day from gmv_detail gd  group by day");
+        List<Map<String, String>> results = generateQueryResult(sql);
+        List<String> creatorList = accountRepo.findAllCreator();
+        List<String> dayList = new ArrayList<>();
+        results.stream().forEach(a -> {
+            a.entrySet().stream().forEach(b -> {
+                String value = b.getValue();
+                dayList.add(value);
+            });
+        });
+        dayList.stream().forEach(a -> {
+            batchHandleService.handlePerDayGmvData(a, creatorList);
+        });
+    }
+
+    @Override
+    public void executeSql(StringBuffer sql) {
+        Connection conn = null;
+        PreparedStatement stmt = null;
+        ResultSet rs = null;
+        try {
+            conn = ClickHouseConfig.getConnection();
+            stmt = conn.prepareStatement(sql.toString());
+            int count = stmt.executeUpdate();
+            log.info("EXECUTE UPDATE SQL:{},COUNT:{}", sql, count);
+        } catch (Exception ex) {
+            ex.printStackTrace();
+        } finally {
+            //释放资源
+            ClickHouseConfig.release(conn, stmt, rs);
+        }
     }
 
 
@@ -1121,11 +1164,10 @@ public class GmvAnalysisServiceImpl implements IGmvAnalysisService {
     }
 
 
-
     private void handleVidFile(MultipartFile vidFile, String account, String time, String country) {
         try {
             File tempFile = multipartFileToFile(vidFile);
-            importCsvFile(tempFile, account, time,"vid", country);
+            importCsvFile(tempFile, account, time, "vid", country);
             deleteFile(tempFile);
         } catch (Exception e) {
             log.error("HANDLE SUBMIT FILE:{}, ERROR:{}", account, e);
@@ -1135,7 +1177,7 @@ public class GmvAnalysisServiceImpl implements IGmvAnalysisService {
     private void handleGmvFile(MultipartFile gmvFile, String account, String time, String country) {
         try {
             File tempFile = multipartFileToFile(gmvFile);
-            importCsvFile(tempFile, account, time,"gmv",country);
+            importCsvFile(tempFile, account, time, "gmv", country);
             deleteFile(tempFile);
         } catch (Exception e) {
             log.error("HANDLE SUBMIT FILE:{}, ERROR:{}", account, e);
@@ -1154,18 +1196,18 @@ public class GmvAnalysisServiceImpl implements IGmvAnalysisService {
     private void importCsvFile(File file, String account, String time, String type, String country) {
         try {
             BufferedReader reader = new BufferedReader(new InputStreamReader(new FileInputStream(file), "utf-8"));
-            switch (type){
+            switch (type) {
                 case "gmv":
                     generateGmvIndex(reader);
-                    saveGmvData(reader,account,time,country);
+                    saveGmvData(reader, account, time, country);
                     break;
                 case "vid":
                     generateVidIndex(reader);
-                    saveVidData(reader,account,time);
+                    saveVidData(reader, account, time);
                     break;
                 default:
             }
-        }catch (Exception e){
+        } catch (Exception e) {
 
         }
 
@@ -1204,13 +1246,13 @@ public class GmvAnalysisServiceImpl implements IGmvAnalysisService {
                     double gmv = Double.valueOf(generateFormatValue(item[vidDataIndex.get(MainConstant.GMV)]));
                     Integer video_views = Integer.valueOf(generateFormatValue(item[vidDataIndex.get(MainConstant.VIDEO_VIEWS)]));
                     double commission = Double.valueOf(generateFormatValue(item[vidDataIndex.get(MainConstant.COMMISSION)]));
-                    model.setDate(StringUtils.isNotBlank(date) ? DateUtil.parseTimeByDayFormat(date.substring(0,10) + " 10:00:00") : DateUtil.parseDayByDayFormat(time));
+                    model.setDate(StringUtils.isNotBlank(date) ? DateUtil.parseTimeByDayFormat(date.substring(0, 10) + " 10:00:00") : DateUtil.parseDayByDayFormat(time));
                     model.setAccount(account);
                     model.setCreator(creator);
                     model.setProduct_id(product_id);
                     model.setGmv(gmv);
                     model.setVid(vid);
-                    model.setPostTime(StringUtils.isNotBlank(postTime) ? DateUtil.parseTimeByDayFormat(postTime.substring(0,10) + " 10:00:00") : DateUtil.parseDayByDayFormat(postTime));
+                    model.setPostTime(StringUtils.isNotBlank(postTime) ? DateUtil.parseTimeByDayFormat(postTime.substring(0, 10) + " 10:00:00") : DateUtil.parseDayByDayFormat(postTime));
                     model.setVideo_views(video_views);
                     model.setCommission(commission);
                     String url = "http://www.tiktok.com/@handle/video/" + vid;
@@ -1222,13 +1264,13 @@ public class GmvAnalysisServiceImpl implements IGmvAnalysisService {
                 }
             }
             List<JSONObject> dataList = new ArrayList<>();
-            videoDetailModels.stream().forEach(a->{
+            videoDetailModels.stream().forEach(a -> {
                 JSONObject jsonObject = (JSONObject) JSONObject.toJSON(a);
                 dataList.add(jsonObject);
             });
-            insertClickHouse(dataList,"vid");
+            insertClickHouse(dataList, "vid");
         } catch (Exception e) {
-            log.error( "  GENERATE VIDEO DATA ERROR:{}", e.getMessage());
+            log.error("  GENERATE VIDEO DATA ERROR:{}", e.getMessage());
         }
     }
 
@@ -1281,6 +1323,8 @@ public class GmvAnalysisServiceImpl implements IGmvAnalysisService {
 
     private void saveGmvData(BufferedReader reader, String account, String time, String country) {
         List<GmvDetailModel> gmvDetailModels = new ArrayList<>();
+        List<GmvDetailModel> indexGmvDetailList = new ArrayList<>();
+        List<String> creatorList = accountRepo.findAllCreator();
         try {
             int index = 0;
             String line = null;
@@ -1289,12 +1333,12 @@ public class GmvAnalysisServiceImpl implements IGmvAnalysisService {
                 if (validate) {
                     GmvDetailModel model = new GmvDetailModel();
                     String[] item = line.split("#");
-                    String date =  item[gmvDataIndex.get(MainConstant.DATE)];
+                    String date = item[gmvDataIndex.get(MainConstant.DATE)];
                     String campaign_id = item[gmvDataIndex.get(MainConstant.CAMPAIGN_ID)];
                     String campaign_name = item[gmvDataIndex.get(MainConstant.CAMPAIGN_NAME)];
                     String creator = item[gmvDataIndex.get(MainConstant.CREATOR)];
                     String product_id = item[gmvDataIndex.get(MainConstant.PID)];
-                    String product_name =  item[gmvDataIndex.get(MainConstant.PRODUCT_NAME)];
+                    String product_name = item[gmvDataIndex.get(MainConstant.PRODUCT_NAME)];
                     String level_1_category = item[gmvDataIndex.get(MainConstant.LEVEL_1_CATEGORY)];
                     String level_2_category = item[gmvDataIndex.get(MainConstant.LEVEL_2_CATEGORY)];
                     double gmv = Double.valueOf(generateFormatValue(item[gmvDataIndex.get(MainConstant.GMV)]));
@@ -1306,7 +1350,7 @@ public class GmvAnalysisServiceImpl implements IGmvAnalysisService {
                     model.setCampaign_id(campaign_id);
                     model.setCampaign_name(campaign_name);
                     model.setCountry(country);
-                    model.setDate(StringUtils.isNotBlank(date) ? DateUtil.parseTimeByDayFormat(date.substring(0,10) + " 10:00:00") : DateUtil.parseDayByDayFormat(time));
+                    model.setDate(StringUtils.isNotBlank(date) ? DateUtil.parseTimeByDayFormat(date.substring(0, 10) + " 10:00:00") : DateUtil.parseDayByDayFormat(time));
                     model.setAccount(account);
                     model.setCreator(creator);
                     model.setProduct_id(product_id);
@@ -1319,6 +1363,10 @@ public class GmvAnalysisServiceImpl implements IGmvAnalysisService {
                     model.setVideo_views(video_views);
                     model.setCreator_commission(creatorCommission);
                     model.setPartner_commission(partnerCommission);
+                    model.setCreator_type(creatorList.contains(creator) ? 0 : 1);
+                    if (creatorList.contains(creator)) {
+                        indexGmvDetailList.add(model);
+                    }
                     gmvDetailModels.add(model);
                     index++;
                 } else {
@@ -1326,17 +1374,23 @@ public class GmvAnalysisServiceImpl implements IGmvAnalysisService {
                 }
             }
             List<JSONObject> dataList = new ArrayList<>();
-            gmvDetailModels.stream().forEach(a->{
+            List<JSONObject> indexList = new ArrayList<>();
+            gmvDetailModels.stream().forEach(a -> {
                 JSONObject jsonObject = (JSONObject) JSONObject.toJSON(a);
                 dataList.add(jsonObject);
             });
-            insertClickHouse(dataList,"gmv");
+            indexGmvDetailList.stream().forEach(a -> {
+                JSONObject jsonObject = (JSONObject) JSONObject.toJSON(a);
+                indexList.add(jsonObject);
+            });
+            insertClickHouse(dataList, "gmv");
+            insertClickHouse(indexList, "index");
         } catch (Exception e) {
-            log.error( "  GENERATE GMV DATA ERROR:{}", e.getMessage());
+            log.error("  GENERATE GMV DATA ERROR:{}", e.getMessage());
         }
     }
 
-    public void insertClickHouse(List<JSONObject> dataList,String type){
+    public void insertClickHouse(List<JSONObject> dataList, String type) {
         PreparedStatement statement = null;
         Connection connection = null;
         try {
@@ -1344,31 +1398,31 @@ public class GmvAnalysisServiceImpl implements IGmvAnalysisService {
             connection = DriverManager.getConnection(clickhouseUrl, clickHouseUserName, clickHousePassword);
             connection.setAutoCommit(false);
             String sql = "";
-            switch (type){
+            switch (type) {
                 case "gmv":
-                    sql = "INSERT INTO gmv_detail (id,date,account,country,creator,campaign_id,campaign_name,level_1_category,level_2_category,product_id,product_name,gmv,orders,video_views,videos,creator_commission,partner_commission) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
+                    sql = "INSERT INTO gmv_detail (id,date,account,country,creator,campaign_id,campaign_name,level_1_category,level_2_category,product_id,product_name,gmv,orders,video_views,videos,creator_commission,partner_commission,creator_type) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
                     break;
                 case "vid":
                     sql = "INSERT INTO video_detail (id, account,creator,commission,gmv,product_id,url,vid,video_views,date,postTime) VALUES (?,?,?,?,?,?,?,?,?,?,?)";
                     break;
-                case "pid":
-                    sql = "";
-                    break;
-                case "creator":
-                    sql = "INSERT INTO your_table (column1, column2) VALUES (?, ?)";
+                case "index":
+                    sql = "INSERT INTO index_gmv_detail (id,date,creator,product_id,gmv) VALUES (?,?,?,?,?)";
                     break;
                 default:
             }
             statement = connection.prepareStatement(sql);
-            switch (type){
+            switch (type) {
                 case "gmv":
                     List<GmvDetailModel> gmvDetailModels = JSONObject.parseArray(JSON.toJSONString(dataList), GmvDetailModel.class);
-                    setGmvStatement(statement,gmvDetailModels);
+                    setGmvStatement(statement, gmvDetailModels);
                     break;
                 case "vid":
-                    List<VideoDetailModel> videoDetailModels = JSONObject.parseArray(JSON.toJSONString(dataList),VideoDetailModel.class);
-                    setVidStatement(statement,videoDetailModels);
+                    List<VideoDetailModel> videoDetailModels = JSONObject.parseArray(JSON.toJSONString(dataList), VideoDetailModel.class);
+                    setVidStatement(statement, videoDetailModels);
                     break;
+                case "index":
+                    List<GmvDetailModel> indexGmvList = JSONObject.parseArray(JSON.toJSONString(dataList), GmvDetailModel.class);
+                    setGmvIndexStatement(statement, indexGmvList);
                 default:
             }
             int[] updateCounts = statement.executeBatch();
@@ -1400,20 +1454,35 @@ public class GmvAnalysisServiceImpl implements IGmvAnalysisService {
         }
     }
 
-    private void setVidStatement(PreparedStatement statement, List<VideoDetailModel> videoDetailModels) {
-        videoDetailModels.stream().forEach(a->{
+    private void setGmvIndexStatement(PreparedStatement statement, List<GmvDetailModel> indexGmvList) {
+        indexGmvList.stream().forEach(a->{
             try {
-                statement.setString(1,String.valueOf(UUID.randomUUID()));
-                statement.setString(2,a.getAccount());
-                statement.setString(3,a.getCreator());
-                statement.setDouble(4,a.getCommission());
-                statement.setDouble(5,a.getGmv());
-                statement.setString(6,a.getProduct_id());
-                statement.setString(7,a.getUrl());
-                statement.setString(8,a.getVid());
-                statement.setInt(9,a.getVideo_views());
-                statement.setLong(10,a.getDate());
-                statement.setLong(11,a.getPostTime());
+                statement.setString(1, String.valueOf(UUID.randomUUID()));
+                statement.setLong(2, a.getDate());
+                statement.setString(3, a.getCreator());
+                statement.setString(4, a.getProduct_id());
+                statement.setDouble(5, a.getGmv());
+                statement.addBatch();
+            }catch (Exception e){
+
+            }
+        });
+    }
+
+    private void setVidStatement(PreparedStatement statement, List<VideoDetailModel> videoDetailModels) {
+        videoDetailModels.stream().forEach(a -> {
+            try {
+                statement.setString(1, String.valueOf(UUID.randomUUID()));
+                statement.setString(2, a.getAccount());
+                statement.setString(3, a.getCreator());
+                statement.setDouble(4, a.getCommission());
+                statement.setDouble(5, a.getGmv());
+                statement.setString(6, a.getProduct_id());
+                statement.setString(7, a.getUrl());
+                statement.setString(8, a.getVid());
+                statement.setInt(9, a.getVideo_views());
+                statement.setLong(10, a.getDate());
+                statement.setLong(11, a.getPostTime());
                 statement.addBatch();
             } catch (SQLException e) {
                 throw new RuntimeException(e);
@@ -1422,25 +1491,26 @@ public class GmvAnalysisServiceImpl implements IGmvAnalysisService {
     }
 
     private void setGmvStatement(PreparedStatement statement, List<GmvDetailModel> gmvDetailModels) {
-        gmvDetailModels.stream().forEach(a->{
+        gmvDetailModels.stream().forEach(a -> {
             try {
                 statement.setString(1, String.valueOf(UUID.randomUUID()));
-                statement.setLong(2,a.getDate());
-                statement.setString(3,a.getAccount());
-                statement.setString(4,a.getCountry());
-                statement.setString(5,a.getCreator());
-                statement.setString(6,a.getCampaign_id());
-                statement.setString(7,a.getCampaign_name());
-                statement.setString(8,a.getLevel_1_category());
-                statement.setString(9,a.getLevel_2_category());
-                statement.setString(10,a.getProduct_id());
-                statement.setString(11,a.getProduct_name());
-                statement.setDouble(12,a.getGmv());
-                statement.setInt(13,a.getOrders());
-                statement.setInt(14,a.getVideo_views());
-                statement.setInt(15,a.getVideos());
-                statement.setDouble(16,a.getCreator_commission());
-                statement.setDouble(17,a.getPartner_commission());
+                statement.setLong(2, a.getDate());
+                statement.setString(3, a.getAccount());
+                statement.setString(4, a.getCountry());
+                statement.setString(5, a.getCreator());
+                statement.setString(6, a.getCampaign_id());
+                statement.setString(7, a.getCampaign_name());
+                statement.setString(8, a.getLevel_1_category());
+                statement.setString(9, a.getLevel_2_category());
+                statement.setString(10, a.getProduct_id());
+                statement.setString(11, a.getProduct_name());
+                statement.setDouble(12, a.getGmv());
+                statement.setInt(13, a.getOrders());
+                statement.setInt(14, a.getVideo_views());
+                statement.setInt(15, a.getVideos());
+                statement.setDouble(16, a.getCreator_commission());
+                statement.setDouble(17, a.getPartner_commission());
+                statement.setInt(18, a.getCreator_type());
                 statement.addBatch();
             } catch (SQLException e) {
                 throw new RuntimeException(e);
@@ -1457,11 +1527,11 @@ public class GmvAnalysisServiceImpl implements IGmvAnalysisService {
      * @return
      */
     private String generateFormatValue(String value) {
-        if(value.contains("$")){
-            value = value.replaceAll("\\$","");
+        if (value.contains("$")) {
+            value = value.replaceAll("\\$", "");
         }
-        if(value.contains(",")){
-            value = value.replaceAll(",","");
+        if (value.contains(",")) {
+            value = value.replaceAll(",", "");
         }
         value = StringUtils.isBlank(value) || value.equalsIgnoreCase(MainConstant.MID_LINE) ? "0" : value;
         return value;
@@ -1577,7 +1647,7 @@ public class GmvAnalysisServiceImpl implements IGmvAnalysisService {
     }
 
 
-    private StringBuffer generateCombine(List<String> groupList, List<String> metricsList,String type) {
+    private StringBuffer generateCombine(List<String> groupList, List<String> metricsList, String type) {
         StringBuffer sql = new StringBuffer();
         groupList.stream().forEach(a -> {
             sql.append("t1.");
@@ -1585,7 +1655,7 @@ public class GmvAnalysisServiceImpl implements IGmvAnalysisService {
             sql.append(",");
         });
         metricsList.stream().forEach(a -> {
-            if(!a.equals("date")){
+            if (!a.equals("date")) {
                 sql.append("t1.");
                 sql.append(a);
                 if (metricsList.indexOf(a) != metricsList.size() - 1) {
@@ -1593,9 +1663,9 @@ public class GmvAnalysisServiceImpl implements IGmvAnalysisService {
                 }
             }
         });
-        if(type.equals("product_id")){
+        if (type.equals("product_id")) {
             sql.append(",t2.picture");
-        }else {
+        } else {
             sql.append(",t2.profile_picture");
         }
         return sql;
@@ -1647,7 +1717,6 @@ public class GmvAnalysisServiceImpl implements IGmvAnalysisService {
         }
         return sql;
     }
-
 
 
     private StringBuffer generateGroup(List<String> groupList) {

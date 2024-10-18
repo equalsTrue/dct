@@ -1,7 +1,5 @@
 package com.dct.service.sample;
 
-import com.alibaba.fastjson.JSONObject;
-
 import java.util.List;
 
 /**
@@ -15,4 +13,6 @@ public interface IBatchHandleService {
     void approveApply(List<String> idList);
 
     void applyProduct(Object params);
+
+    void handlePerDayGmvData(String day, List<String> creatorList);
 }

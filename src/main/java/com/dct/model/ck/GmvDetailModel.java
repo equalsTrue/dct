@@ -72,4 +72,10 @@ public class GmvDetailModel {
     @Column(name = "level_2_category")
     public String level_2_category;
 
+    /**
+     *  0:自有账户  1:其他账户
+     */
+    @Column(name = "creator_type")
+    public Integer creator_type;
+
 }

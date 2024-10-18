@@ -72,4 +72,8 @@ public interface IGmvAnalysisService {
     void submitPicture();
 
     void cacheGmvInfo();
+
+    void handleCreatorType();
+
+    void executeSql(StringBuffer sql);
 }

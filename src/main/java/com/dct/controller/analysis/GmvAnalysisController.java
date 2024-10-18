@@ -176,4 +176,13 @@ public class GmvAnalysisController {
         return ResponseInfoUtil.success();
     }
 
+    /**
+     * 处理历史数据的creatorType
+     */
+    @GetMapping(value = "/handle/creator/type/history")
+    public ResponseInfoVO handleCreatorType(){
+        gmvAnalysisService.handleCreatorType();
+        return ResponseInfoUtil.success();
+    }
+
 }

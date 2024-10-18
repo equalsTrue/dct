@@ -12,8 +12,10 @@ import com.dct.common.constant.enums.NumberEnum;
 import com.dct.common.websocket.ProductApplyNotification;
 import com.dct.model.dct.ProductModel;
 import com.dct.repo.sample.ProductRepo;
+import com.dct.service.analysis.IGmvAnalysisService;
 import com.dct.service.sample.IBatchHandleService;
 import lombok.extern.slf4j.Slf4j;
+import org.checkerframework.checker.units.qual.A;
 import org.redisson.api.RLock;
 import org.redisson.api.RedissonClient;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -42,6 +44,9 @@ public class BatchHandleServiceImpl implements IBatchHandleService {
 
     @Autowired
     private RedissonClient redissonClient;
+
+    @Autowired
+    private IGmvAnalysisService gmvAnalysisService;
 
     /**
      * 批准申请.
@@ -87,5 +92,33 @@ public class BatchHandleServiceImpl implements IBatchHandleService {
         } finally {
             applyLock.unlock();
         }
+    }
+
+    /**
+     * 处理gmv 数据里面的createType
+     *
+     * @param day
+     * @param creatorList
+     */
+    @Override
+    @Async
+    public void handlePerDayGmvData(String day, List<String> creatorList) {
+        StringBuffer whereInCreator = new StringBuffer();
+        whereInCreator.append("(");
+        for (int i = 0; i < creatorList.size(); i++) {
+            if (i == creatorList.size() - 1) {
+                whereInCreator.append("'" + creatorList.get(i) + "') ");
+            } else {
+                whereInCreator.append("'" + creatorList.get(i) + "',");
+            }
+        }
+        StringBuffer step1 = new StringBuffer();
+        step1.append("update creator_type = 1 from gmv_detail where creator in toDate(date) = '" + day + "'");
+        gmvAnalysisService.executeSql(step1);
+        StringBuffer sql = new StringBuffer();
+        sql.append("update creator_type = 0 from gmv_detail");
+        sql.append(" where creator in toDate(date) = '" + day + "' AND ");
+        sql.append( whereInCreator);
+        gmvAnalysisService.executeSql(sql);
     }
 }

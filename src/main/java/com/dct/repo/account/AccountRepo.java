@@ -47,4 +47,7 @@ public interface AccountRepo extends JpaRepository<AccountModel,String>, JpaSpec
     @Modifying
     @Transactional(rollbackFor = Exception.class)
     void deleteByUid(String uid);
+
+    @Query("select t.creator from AccountModel t")
+    List<String> findAllCreator();
 }
