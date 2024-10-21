@@ -491,7 +491,7 @@ public class GmvAnalysisServiceImpl implements IGmvAnalysisService {
         } else {
             sql.append("creator");
         }
-        sql.append(" FROM gmv_detail where ");
+        sql.append(" FROM index_gmv_detail where ");
         sql.append("toDateTime(date, 'Asia/Shanghai')>='" + timeList.get(0) + "' AND toDateTime(date, 'Asia/Shanghai')<='" + timeList.get(1) + "'");
         if (groupList.contains("product_id")) {
             sql.append(" GROUP BY product_id,");
@@ -529,7 +529,7 @@ public class GmvAnalysisServiceImpl implements IGmvAnalysisService {
      * @param sql
      * @return
      */
-    private List<Map<String, String>> generateQueryResult(StringBuffer sql) {
+    public List<Map<String, String>> generateQueryResult(StringBuffer sql) {
         List<Map<String, String>> results = new ArrayList<>();
         Connection conn = null;
         PreparedStatement stmt = null;
@@ -1143,10 +1143,13 @@ public class GmvAnalysisServiceImpl implements IGmvAnalysisService {
         Connection conn = null;
         PreparedStatement stmt = null;
         ResultSet rs = null;
+
         try {
             conn = ClickHouseConfig.getConnection();
+            conn.setAutoCommit(false);
             stmt = conn.prepareStatement(sql.toString());
             int count = stmt.executeUpdate();
+            conn.commit();
             log.info("EXECUTE UPDATE SQL:{},COUNT:{}", sql, count);
         } catch (Exception ex) {
             ex.printStackTrace();
@@ -1154,6 +1157,23 @@ public class GmvAnalysisServiceImpl implements IGmvAnalysisService {
             //释放资源
             ClickHouseConfig.release(conn, stmt, rs);
         }
+    }
+
+    @Override
+    public void importHistoryIndexGmv() {
+        StringBuffer sql = new StringBuffer();
+        sql.append("select toDate(date)as day from gmv_detail group by day");
+        List<Map<String, String>> results = generateQueryResult(sql);
+        List<String> dayList = new ArrayList<>();
+        results.stream().forEach(a -> {
+            a.entrySet().stream().forEach(b -> {
+                String value = b.getValue();
+                dayList.add(value);
+            });
+        });
+        dayList.stream().forEach(a -> {
+            batchHandleService.importIndexGmvData(a);
+        });
     }
 
 
@@ -1396,7 +1416,7 @@ public class GmvAnalysisServiceImpl implements IGmvAnalysisService {
         try {
             Class.forName("com.clickhouse.jdbc.ClickHouseDriver");
             connection = DriverManager.getConnection(clickhouseUrl, clickHouseUserName, clickHousePassword);
-            connection.setAutoCommit(false);
+//            connection.setAutoCommit(false);
             String sql = "";
             switch (type) {
                 case "gmv":

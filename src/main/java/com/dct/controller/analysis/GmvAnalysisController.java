@@ -185,4 +185,13 @@ public class GmvAnalysisController {
         return ResponseInfoUtil.success();
     }
 
+
+    /**
+     * 处理历史数据的creatorType
+     */
+    @GetMapping(value = "/import/history/index/gmv")
+    public ResponseInfoVO importHistoryIndexGmv(){
+        gmvAnalysisService.importHistoryIndexGmv();
+        return ResponseInfoUtil.success();
+    }
 }

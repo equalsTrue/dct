@@ -15,4 +15,6 @@ public interface IBatchHandleService {
     void applyProduct(Object params);
 
     void handlePerDayGmvData(String day, List<String> creatorList);
+
+    void importIndexGmvData(String a);
 }

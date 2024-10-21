@@ -6,6 +6,7 @@ import com.dct.model.vo.VideoDetailVo;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
+import java.util.Map;
 
 /**
  * @program dct
@@ -76,4 +77,10 @@ public interface IGmvAnalysisService {
     void handleCreatorType();
 
     void executeSql(StringBuffer sql);
+
+    void importHistoryIndexGmv();
+
+    List<Map<String, String>> generateQueryResult(StringBuffer sql);
+
+    void insertClickHouse(List<JSONObject> indexList, String index);
 }

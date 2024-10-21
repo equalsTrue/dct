@@ -11,6 +11,7 @@ import com.dct.common.constant.consist.MainConstant;
 import com.dct.common.constant.enums.NumberEnum;
 import com.dct.common.websocket.ProductApplyNotification;
 import com.dct.model.dct.ProductModel;
+import com.dct.model.vo.GmvDetailVo;
 import com.dct.repo.sample.ProductRepo;
 import com.dct.service.analysis.IGmvAnalysisService;
 import com.dct.service.sample.IBatchHandleService;
@@ -23,7 +24,9 @@ import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -113,12 +116,35 @@ public class BatchHandleServiceImpl implements IBatchHandleService {
             }
         }
         StringBuffer step1 = new StringBuffer();
-        step1.append("update creator_type = 1 from gmv_detail where creator in toDate(date) = '" + day + "'");
+        step1.append("alter table gmv_detail update  creator_type = 1  where toDate(date) = '" + day + "'");
         gmvAnalysisService.executeSql(step1);
         StringBuffer sql = new StringBuffer();
-        sql.append("update creator_type = 0 from gmv_detail");
-        sql.append(" where creator in toDate(date) = '" + day + "' AND ");
+        sql.append("alter table test_gmv_detail update  creator_type = 0");
+        sql.append(" where toDate(date) = '" + day + "' AND creator in ");
         sql.append( whereInCreator);
         gmvAnalysisService.executeSql(sql);
+    }
+
+    @Override
+    @Async
+    public void importIndexGmvData(String date) {
+        StringBuffer sql = new StringBuffer();
+        sql.append("select date,creator,product_id,gmv from test_gmv_detail where toDate(date) = '" + date + "' AND creator_type = 0 ");
+        List<Map<String, String>> results = gmvAnalysisService.generateQueryResult(sql);
+        List<JSONObject> indexList = new ArrayList<>();
+        results.stream().forEach(a -> {
+            JSONObject jsonObject = new JSONObject();
+            a.entrySet().stream().forEach(b -> {
+                String key = b.getKey();
+                String value = b.getValue();
+                if (key.equals("day")) {
+                    jsonObject.put("date", value);
+                } else {
+                    jsonObject.put(key, value);
+                }
+            });
+            indexList.add(jsonObject);
+        });
+        gmvAnalysisService.insertClickHouse(indexList, "index");
     }
 }
