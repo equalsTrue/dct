@@ -7,9 +7,12 @@ package com.dct.service.sample.impl;/**
 
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
+import com.dct.common.config.datasource.ClickHouseConfig;
 import com.dct.common.constant.consist.MainConstant;
 import com.dct.common.constant.enums.NumberEnum;
 import com.dct.common.websocket.ProductApplyNotification;
+import com.dct.model.ck.GmvDetailModel;
+import com.dct.model.ck.VideoDetailModel;
 import com.dct.model.dct.ProductModel;
 import com.dct.model.vo.GmvDetailVo;
 import com.dct.repo.sample.ProductRepo;
@@ -20,13 +23,20 @@ import org.checkerframework.checker.units.qual.A;
 import org.redisson.api.RLock;
 import org.redisson.api.RedissonClient;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -50,6 +60,17 @@ public class BatchHandleServiceImpl implements IBatchHandleService {
 
     @Autowired
     private IGmvAnalysisService gmvAnalysisService;
+
+    @Value("${spring.datasource.druid.ck.url}")
+    private String clickhouseUrl;
+
+
+    @Value("${spring.datasource.druid.ck.username}")
+    private String clickHouseUserName;
+
+
+    @Value("${spring.datasource.druid.ck.password}")
+    private String clickHousePassword;
 
     /**
      * 批准申请.
@@ -117,12 +138,12 @@ public class BatchHandleServiceImpl implements IBatchHandleService {
         }
         StringBuffer step1 = new StringBuffer();
         step1.append("alter table gmv_detail update  creator_type = 1  where toDate(date) = '" + day + "'");
-        gmvAnalysisService.executeSql(step1);
+        executeSql(step1);
         StringBuffer sql = new StringBuffer();
         sql.append("alter table test_gmv_detail update  creator_type = 0");
         sql.append(" where toDate(date) = '" + day + "' AND creator in ");
         sql.append( whereInCreator);
-        gmvAnalysisService.executeSql(sql);
+        executeSql(sql);
     }
 
     @Override
@@ -145,6 +166,84 @@ public class BatchHandleServiceImpl implements IBatchHandleService {
             });
             indexList.add(jsonObject);
         });
-        gmvAnalysisService.insertClickHouse(indexList, "index");
+        insertClickHouse(indexList, "index");
+    }
+
+
+
+    public void insertClickHouse(List<JSONObject> dataList, String type) {
+        PreparedStatement statement = null;
+        Connection connection = null;
+        try {
+            Class.forName("com.clickhouse.jdbc.ClickHouseDriver");
+            connection = DriverManager.getConnection(clickhouseUrl, clickHouseUserName, clickHousePassword);
+//            connection.setAutoCommit(false);
+            String sql =  "INSERT INTO index_gmv_detail (id,date,creator,product_id,gmv) VALUES (?,?,?,?,?)";
+            statement = connection.prepareStatement(sql);
+            List<GmvDetailModel> indexGmvList = JSONObject.parseArray(JSON.toJSONString(dataList), GmvDetailModel.class);
+            setGmvIndexStatement(statement, indexGmvList);
+            int[] updateCounts = statement.executeBatch();
+            connection.commit();
+            System.out.println("Batch insert complete. Affected rows: " + updateCounts.length);
+
+        } catch (SQLException e) {
+            try {
+                if (connection != null) {
+                    connection.rollback();
+                }
+            } catch (SQLException ex) {
+                ex.printStackTrace();
+            }
+            e.printStackTrace();
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        } finally {
+            try {
+                if (statement != null) {
+                    statement.close();
+                }
+                if (connection != null) {
+                    connection.close();
+                }
+            } catch (SQLException e) {
+                e.printStackTrace();
+            }
+        }
+    }
+
+    private void setGmvIndexStatement(PreparedStatement statement, List<GmvDetailModel> indexGmvList) {
+        indexGmvList.stream().forEach(a->{
+            try {
+                statement.setString(1, String.valueOf(UUID.randomUUID()));
+                statement.setLong(2, a.getDate());
+                statement.setString(3, a.getCreator());
+                statement.setString(4, a.getProduct_id());
+                statement.setDouble(5, a.getGmv());
+                statement.addBatch();
+            }catch (Exception e){
+
+            }
+        });
+    }
+
+
+    public void executeSql(StringBuffer sql) {
+        Connection conn = null;
+        PreparedStatement stmt = null;
+        ResultSet rs = null;
+
+        try {
+            conn = ClickHouseConfig.getConnection();
+            conn.setAutoCommit(false);
+            stmt = conn.prepareStatement(sql.toString());
+            int count = stmt.executeUpdate();
+            conn.commit();
+            log.info("EXECUTE UPDATE SQL:{},COUNT:{}", sql, count);
+        } catch (Exception ex) {
+            ex.printStackTrace();
+        } finally {
+            //释放资源
+            ClickHouseConfig.release(conn, stmt, rs);
+        }
     }
 }
