@@ -26,6 +26,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.redisson.api.RLock;
 import org.redisson.api.RedissonClient;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.data.redis.core.StringRedisTemplate;
@@ -69,6 +70,7 @@ public class ProductServiceImpl implements IProductService {
 
 
     @Autowired
+    @Lazy
     private IBatchHandleService batchService;
 
 
