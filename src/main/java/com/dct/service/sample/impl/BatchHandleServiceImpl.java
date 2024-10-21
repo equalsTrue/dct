@@ -142,7 +142,7 @@ public class BatchHandleServiceImpl implements IBatchHandleService {
         step1.append("alter table gmv_detail update  creator_type = 1  where toDate(date) = '" + day + "'");
         executeSql(step1);
         StringBuffer sql = new StringBuffer();
-        sql.append("alter table test_gmv_detail update  creator_type = 0");
+        sql.append("alter table gmv_detail update  creator_type = 0");
         sql.append(" where toDate(date) = '" + day + "' AND creator in ");
         sql.append( whereInCreator);
         executeSql(sql);
@@ -152,7 +152,7 @@ public class BatchHandleServiceImpl implements IBatchHandleService {
     @Async
     public void importIndexGmvData(String date) {
         StringBuffer sql = new StringBuffer();
-        sql.append("select date,creator,product_id,gmv from test_gmv_detail where toDate(date) = '" + date + "' AND creator_type = 0 ");
+        sql.append("select date,creator,product_id,gmv from gmv_detail where toDate(date) = '" + date + "' AND creator_type = 0 ");
         List<Map<String, String>> results = gmvAnalysisService.generateQueryResult(sql);
         List<JSONObject> indexList = new ArrayList<>();
         results.stream().forEach(a -> {
