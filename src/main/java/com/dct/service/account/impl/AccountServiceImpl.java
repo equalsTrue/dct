@@ -130,13 +130,15 @@ public class AccountServiceImpl implements IAccountService {
         JSONArray groupArray = params.getJSONArray("userGroup");
         JSONArray countryArray = params.getJSONArray("country");
         JSONArray statusArray = params.getJSONArray("status");
-        Integer assignStatus = params.getInteger("assignStatus");
+        JSONArray assignStatusArray = params.getJSONArray("assignStatus");
         List<String> creatorList = JSONArray.parseArray(JSON.toJSONString(creatorArray),String.class);
         List<String> uidList = JSONArray.parseArray(JSON.toJSONString(uidArray),String.class);
         List<String> personList = JSONArray.parseArray(JSON.toJSONString(personArray),String.class);
         List<String> groupList = JSONArray.parseArray(JSON.toJSONString(groupArray),String.class);
         List<String> countryList = JSONArray.parseArray(JSON.toJSONString(countryArray),String.class);
-        List<String> statusList = JSONArray.parseArray(JSON.toJSONString(statusArray),String.class);
+        List<Integer> statusList = JSONArray.parseArray(JSON.toJSONString(statusArray),Integer.class);
+        List<Integer> assignStatusList = JSONArray.parseArray(JSON.toJSONString(assignStatusArray),Integer.class);
+
         Specification specification = new Specification() {
             @Override
             public Predicate toPredicate(Root root, CriteriaQuery criteriaQuery, CriteriaBuilder criteriaBuilder) {
@@ -176,12 +178,16 @@ public class AccountServiceImpl implements IAccountService {
                     }
                     predicates.add(in);
                 }
-                if(assignStatus != null){
-                    predicates.add(criteriaBuilder.equal(root.get("assignStatus"),assignStatus));
+                if(assignStatusList != null && assignStatusList.size() >0){
+                    CriteriaBuilder.In<Integer> in = criteriaBuilder.in(root.get("assignStatus"));
+                    for (Integer assignStatus : assignStatusList) {
+                        in.value(assignStatus);
+                    }
+                    predicates.add(in);
                 }
                 if(statusList != null && statusList.size() >0){
-                    CriteriaBuilder.In<String> in = criteriaBuilder.in(root.get("status"));
-                    for (String status : statusList) {
+                    CriteriaBuilder.In<Integer> in = criteriaBuilder.in(root.get("status"));
+                    for (Integer status : statusList) {
                         in.value(status);
                     }
                     predicates.add(in);

@@ -89,6 +89,11 @@ public class GmvAnalysisController {
         return ResponseInfoUtil.success(gmvAnalysisService.fetchQueryPidListParams(creator));
     }
 
+    @GetMapping("/gmv/find/productName")
+    public String queryProductName(@RequestParam String pid){
+        return gmvAnalysisService.findProductName(pid);
+    }
+
 
     /**
      * 查询creator 列表参数

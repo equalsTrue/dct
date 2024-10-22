@@ -57,10 +57,13 @@ import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
@@ -148,75 +151,70 @@ public class GmvAnalysisServiceImpl implements IGmvAnalysisService {
      */
     @Override
     public PageQueryVo queryGmvDataList(PageQueryVo pageQueryVo) {
-        JSONObject whereParam = pageQueryVo.getPageFilterVo();
-        List<String> groupList = pageQueryVo.getPageGroupVo();
-        List<String> metricsList = pageQueryVo.getPageMetricsVo();
-        if (groupList.contains("creator")) {
-            resetCreatorWhereParam(whereParam);
-        }
-        StringBuffer whereStr = generateListWhereStr(whereParam);
-        StringBuffer sql = new StringBuffer();
-//        List<GmvDetailVo> gmvIndexList = new ArrayList<>();
-        List<GmvDetailVo> gmvIndexList = generateGvmIndex(groupList, whereParam);
-        Integer page = whereParam.getInteger("page");
-        Integer limit = whereParam.getInteger("limit");
-        sql.append(generateNormalQuery(groupList, metricsList, whereStr));
-        if (page != null && limit != null) {
-            sql.append(" limit " + limit + " offset (" + (page - 1) + ") * " + limit);
-        }
-        List<Map<String, String>> results = generateQueryResult(sql);
-        List<JSONObject> jsonObjectList = new ArrayList<>();
-        results.stream().forEach(a -> {
-            JSONObject jsonObject = new JSONObject();
-            a.entrySet().stream().forEach(b -> {
-                String key = b.getKey();
-                String value = b.getValue();
-                if (key.equals("day")) {
-                    jsonObject.put("date", value);
-                } else {
-                    jsonObject.put(key, value);
-                }
-                if (!groupList.contains("day")) {
-                    jsonObject.put("date", MainConstant.TOTAL);
-                }
-            });
-            jsonObjectList.add(jsonObject);
-        });
-        List<GmvDetailVo> gmvList = JSONObject.parseArray(JSON.toJSONString(jsonObjectList), GmvDetailVo.class);
-        if (groupList.contains("creator")) {
-            gmvList.stream().forEach(a -> {
-                a.setCreatorPicture("https://dct-gmv.s3.ap-southeast-1.amazonaws.com/creator/" + a.getCreator() + ".png");
-            });
-            //补全归属人
-            List<AccountModel> accountList = accountRepo.findAll();
-            if (accountList != null && accountList.size() > 0) {
-                Map<String, String> accountMap = accountList.stream()
-                        .filter(accountModel -> StringUtils.isNotBlank(accountModel.getCreator()) && StringUtils.isNotBlank(accountModel.getBelongPerson()))
-                        .collect(Collectors.toMap(k -> k.getCreator(), v -> v.getBelongPerson()));
+        try {
+            JSONObject whereParam = pageQueryVo.getPageFilterVo();
+            List<String> groupList = pageQueryVo.getPageGroupVo();
+            List<String> metricsList = pageQueryVo.getPageMetricsVo();
+            if (groupList.contains("creator")) {
+                resetCreatorWhereParam(whereParam);
+            }
+            StringBuffer whereStr = generateListWhereStr(whereParam);
+            StringBuffer sql = new StringBuffer();
+            Integer page = whereParam.getInteger("page");
+            Integer limit = whereParam.getInteger("limit");
+            sql.append(generateNormalQuery(groupList, metricsList, whereStr));
+            if (page != null && limit != null) {
+                sql.append(" limit " + limit + " offset (" + (page - 1) + ") * " + limit);
+            }
+            CompletableFuture<List<GmvDetailVo>> gmvIndexList = batchHandleService.generateGvmIndex(groupList, whereParam);
+            CompletableFuture<List<GmvDetailVo>> gmvDataList = batchHandleService.generateGvmData(groupList, sql);
+            CompletableFuture.allOf(gmvIndexList,gmvDataList).join();
+            List<GmvDetailVo> gmvList = gmvDataList.get();
+            List<GmvDetailVo> indexList = gmvIndexList.get();
+            if (groupList.contains("creator")) {
                 gmvList.stream().forEach(a -> {
-                    if (accountMap.containsKey(a.getCreator())) {
-                        a.setBelong_person(accountMap.get(a.getCreator()));
-                    }
+                    a.setCreatorPicture("https://dct-gmv.s3.ap-southeast-1.amazonaws.com/creator/" + a.getCreator() + ".png");
+                });
+                //补全归属人
+                List<AccountModel> accountList = accountRepo.findAll();
+                if (accountList != null && accountList.size() > 0) {
+                    Map<String, String> accountMap = accountList.stream()
+                            .filter(accountModel -> StringUtils.isNotBlank(accountModel.getCreator()) && StringUtils.isNotBlank(accountModel.getBelongPerson()))
+                            .collect(Collectors.toMap(k -> k.getCreator(), v -> v.getBelongPerson()));
+                    gmvList.stream().forEach(a -> {
+                        if (accountMap.containsKey(a.getCreator())) {
+                            a.setBelong_person(accountMap.get(a.getCreator()));
+                        }
+                    });
+                }
+            } else {
+//                Map<String,String> pidNameMap = new HashMap<>();
+//
+//                gmvList.stream().forEach(a->{
+//                   CompletableFuture<String> info = batchHandleService.queryPidAndName(a.getProduct_id());
+//                    CompletableFuture.allOf(info).join();
+//                    try {
+//                        pidNameMap.put(a.getProduct_id(),info.get());
+//                    } catch (InterruptedException e) {
+//                        throw new RuntimeException(e);
+//                    } catch (ExecutionException e) {
+//                        throw new RuntimeException(e);
+//                    }
+//                });
+                gmvList.stream().forEach(a -> {
+//                    a.setProduct_name(pidNameMap.get(a.getProduct_id()));
+                    a.setProductPicture("https://dct-gmv.s3.ap-southeast-1.amazonaws.com/pid/" + a.getProduct_id() + ".png");
                 });
             }
-        } else {
-            gmvList.stream().forEach(a -> {
-                String productParam = cacheManager.getCache("gmv").get(a.getProduct_id()) != null ? cacheManager.getCache("gmv").get(a.getProduct_id()).get().toString() : "";
-                if (StringUtils.isNotBlank(productParam)) {
-                    GmvDetailVo gmvDetailVo = JSONObject.parseObject(productParam, GmvDetailVo.class);
-                    a.setProduct_name(gmvDetailVo.getProduct_name());
-                    a.setLevel_1_category(gmvDetailVo.getLevel_1_category());
-                    a.setLevel_2_category(gmvDetailVo.getLevel_2_category());
-                }
-                a.setProductPicture("https://dct-gmv.s3.ap-southeast-1.amazonaws.com/pid/" + a.getProduct_id() + ".png");
-            });
+            List<GmvDetailVo> addVideoList = generateAddVideoList(groupList, whereParam);
+            List<GmvDetailVo> videoList = generateVideoList(groupList, whereParam);
+            formatIndexAndVideoAdd(gmvList, indexList, addVideoList, videoList, groupList);
+            PageVO pageVO = new PageVO();
+            pageVO.setList(gmvList);
+            pageQueryVo.setPageVO(pageVO);
+        }catch (Exception e){
+            log.error("QUERY GMV DATA ERROR:{}",e.getMessage());
         }
-        List<GmvDetailVo> addVideoList = generateAddVideoList(groupList, whereParam);
-        List<GmvDetailVo> videoList = generateVideoList(groupList, whereParam);
-        formatIndexAndVideoAdd(gmvList, gmvIndexList, addVideoList, videoList, groupList);
-        PageVO pageVO = new PageVO();
-        pageVO.setList(gmvList);
-        pageQueryVo.setPageVO(pageVO);
         return pageQueryVo;
     }
 
@@ -476,52 +474,7 @@ public class GmvAnalysisServiceImpl implements IGmvAnalysisService {
         return videoAddList;
     }
 
-    /**
-     * 生成GVM整体排名.
-     *
-     * @param groupList
-     * @param whereParam
-     */
-    private List<GmvDetailVo> generateGvmIndex(List<String> groupList, JSONObject whereParam) {
-        List<String> timeList = JSONObject.parseArray(whereParam.getJSONArray("time").toJSONString(), String.class);
-        StringBuffer sql = new StringBuffer();
-        sql.append(" SELECT sum(gmv)as gmv,toDate(date)AS day,");
-        if (groupList.contains("product_id")) {
-            sql.append("product_id");
-        } else {
-            sql.append("creator");
-        }
-        sql.append(" FROM index_gmv_detail where ");
-        sql.append("toDateTime(date, 'Asia/Shanghai')>='" + timeList.get(0) + "' AND toDateTime(date, 'Asia/Shanghai')<='" + timeList.get(1) + "'");
-        if (groupList.contains("product_id")) {
-            sql.append(" GROUP BY product_id,");
-        } else {
-            sql.append(" GROUP BY creator,");
-        }
-        sql.append("day");
-        sql.append(" ORDER BY day,gmv desc");
-        List<Map<String, String>> results = generateQueryResult(sql);
-        List<JSONObject> jsonObjectList = new ArrayList<>();
-        results.stream().forEach(a -> {
-            JSONObject jsonObject = new JSONObject();
-            jsonObject.put("index", results.indexOf(a) + 1);
-            a.entrySet().stream().forEach(b -> {
-                String key = b.getKey();
-                String value = b.getValue();
-                if (key.equals("day")) {
-                    jsonObject.put("date", value);
-                } else {
-                    jsonObject.put(key, value);
-                }
-                if (!groupList.contains("day")) {
-                    jsonObject.put("date", MainConstant.TOTAL);
-                }
-            });
-            jsonObjectList.add(jsonObject);
-        });
-        List<GmvDetailVo> gmvIndexList = JSONObject.parseArray(JSON.toJSONString(jsonObjectList), GmvDetailVo.class);
-        return gmvIndexList;
-    }
+
 
     /**
      * 查询结果
@@ -1472,6 +1425,21 @@ public class GmvAnalysisServiceImpl implements IGmvAnalysisService {
                 e.printStackTrace();
             }
         }
+    }
+
+    @Override
+    public String findProductName(String pid) {
+        StringBuffer sql = new StringBuffer();
+        sql.append("SELECT DISTINCT product_name from gmv_detail where product_id = '" + pid + "' limit 1");
+        List<Map<String, String>> result = generateQueryResult(sql);
+        StringBuffer productName = new StringBuffer();
+        result.stream().forEach(a->{
+            a.entrySet().stream().forEach(b -> {
+                productName.append(b.getValue());
+
+            });
+        });
+        return productName.toString();
     }
 
     private void setGmvIndexStatement(PreparedStatement statement, List<GmvDetailModel> indexGmvList) {

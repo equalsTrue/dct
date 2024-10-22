@@ -18,6 +18,7 @@ import com.dct.model.vo.GmvDetailVo;
 import com.dct.repo.sample.ProductRepo;
 import com.dct.service.analysis.IGmvAnalysisService;
 import com.dct.service.sample.IBatchHandleService;
+import com.dct.utils.DateUtil;
 import lombok.extern.slf4j.Slf4j;
 import org.checkerframework.checker.units.qual.A;
 import org.redisson.api.RLock;
@@ -38,6 +39,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -149,7 +151,6 @@ public class BatchHandleServiceImpl implements IBatchHandleService {
     }
 
     @Override
-    @Async
     public void importIndexGmvData(String date) {
         StringBuffer sql = new StringBuffer();
         sql.append("select date,creator,product_id,gmv from gmv_detail where toDate(date) = '" + date + "' AND creator_type = 0 ");
@@ -160,8 +161,8 @@ public class BatchHandleServiceImpl implements IBatchHandleService {
             a.entrySet().stream().forEach(b -> {
                 String key = b.getKey();
                 String value = b.getValue();
-                if (key.equals("day")) {
-                    jsonObject.put("date", value);
+                if (key.equals("date")) {
+                    jsonObject.put("date", DateUtil.parseDayByDayFormat(value)/1000);
                 } else {
                     jsonObject.put(key, value);
                 }
@@ -171,6 +172,100 @@ public class BatchHandleServiceImpl implements IBatchHandleService {
         insertClickHouse(indexList, "index");
     }
 
+    @Override
+    @Async
+    /**
+     * 生成GVM整体排名.
+     *
+     * @param groupList
+     * @param whereParam
+     */
+    public CompletableFuture<List<GmvDetailVo>> generateGvmIndex(List<String> groupList, JSONObject whereParam) {
+        List<String> timeList = JSONObject.parseArray(whereParam.getJSONArray("time").toJSONString(), String.class);
+        StringBuffer sql = new StringBuffer();
+        sql.append(" SELECT sum(gmv)as gmv,");
+        if(groupList.contains("day")){
+            sql.append("toDate(date)AS day,");
+        }
+        if (groupList.contains("product_id")) {
+            sql.append("product_id");
+        } else {
+            sql.append("creator");
+        }
+        sql.append(" FROM gmv_detail where ");
+        sql.append("toDateTime(date, 'Asia/Shanghai')>='" + timeList.get(0) + "' AND toDateTime(date, 'Asia/Shanghai')<='" + timeList.get(1) + "'");
+        if (groupList.contains("product_id")) {
+            sql.append(" GROUP BY product_id");
+        } else {
+            sql.append(" GROUP BY creator");
+        }
+        if(groupList.contains("day")){
+            sql.append(",day");
+        }
+        sql.append(" ORDER BY gmv desc");
+        List<Map<String, String>> results = gmvAnalysisService.generateQueryResult(sql);
+        List<JSONObject> jsonObjectList = new ArrayList<>();
+        results.stream().forEach(a -> {
+            JSONObject jsonObject = new JSONObject();
+            jsonObject.put("index", results.indexOf(a) + 1);
+            a.entrySet().stream().forEach(b -> {
+                String key = b.getKey();
+                String value = b.getValue();
+                if (key.equals("day")) {
+                    jsonObject.put("date", value);
+                } else {
+                    jsonObject.put(key, value);
+                }
+                if (!groupList.contains("day")) {
+                    jsonObject.put("date", MainConstant.TOTAL);
+                }
+            });
+            jsonObjectList.add(jsonObject);
+        });
+        List<GmvDetailVo> gmvIndexList = JSONObject.parseArray(JSON.toJSONString(jsonObjectList), GmvDetailVo.class);
+        return CompletableFuture.completedFuture(gmvIndexList);
+    }
+
+    @Override
+    @Async
+    public CompletableFuture<List<GmvDetailVo>> generateGvmData(List<String> groupList, StringBuffer sql) {
+        List<Map<String, String>> results = gmvAnalysisService.generateQueryResult(sql);
+        List<JSONObject> jsonObjectList = new ArrayList<>();
+        results.stream().forEach(a -> {
+            JSONObject jsonObject = new JSONObject();
+            a.entrySet().stream().forEach(b -> {
+                String key = b.getKey();
+                String value = b.getValue();
+                if (key.equals("day")) {
+                    jsonObject.put("date", value);
+                } else {
+                    jsonObject.put(key, value);
+                }
+                if (!groupList.contains("day")) {
+                    jsonObject.put("date", MainConstant.TOTAL);
+                }
+            });
+            jsonObjectList.add(jsonObject);
+        });
+        List<GmvDetailVo> gmvList = JSONObject.parseArray(JSON.toJSONString(jsonObjectList), GmvDetailVo.class);
+        return CompletableFuture.completedFuture(gmvList);
+    }
+
+    @Override
+    @Async
+    public CompletableFuture<String> queryPidAndName(String productId) {
+        StringBuffer sql = new StringBuffer();
+        sql.append("SELECT DISTINCT product_name from gmv_detail where product_id = '" + productId + "' limit 1");
+        List<Map<String, String>> result = gmvAnalysisService.generateQueryResult(sql);
+        StringBuffer productName = new StringBuffer();
+        result.stream().forEach(a->{
+            a.entrySet().stream().forEach(b -> {
+                productName.append(b.getValue());
+
+            });
+        });
+        return CompletableFuture.completedFuture(productName.toString());
+    }
 
 
     public void insertClickHouse(List<JSONObject> dataList, String type) {
@@ -236,7 +331,7 @@ public class BatchHandleServiceImpl implements IBatchHandleService {
 
         try {
             conn = ClickHouseConfig.getConnection();
-            conn.setAutoCommit(false);
+//            conn.setAutoCommit(false);
             stmt = conn.prepareStatement(sql.toString());
             int count = stmt.executeUpdate();
             conn.commit();

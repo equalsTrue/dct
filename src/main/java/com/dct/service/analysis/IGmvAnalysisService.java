@@ -83,4 +83,6 @@ public interface IGmvAnalysisService {
     List<Map<String, String>> generateQueryResult(StringBuffer sql);
 
     void insertClickHouse(List<JSONObject> indexList, String index);
+
+    String findProductName(String pid);
 }
