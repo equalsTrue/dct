@@ -8,7 +8,6 @@ package com.dct.service.analysis.impl;/**
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
-import com.dct.common.config.CacheConfig;
 import com.dct.common.config.datasource.ClickHouseConfig;
 import com.dct.common.constant.consist.MainConstant;
 import com.dct.common.constant.enums.NumberEnum;
@@ -31,12 +30,10 @@ import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
-import org.checkerframework.checker.nullness.qual.NonNull;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.cache.CacheManager;
-import org.springframework.scheduling.annotation.Async;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
@@ -57,13 +54,11 @@ import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
@@ -118,18 +113,6 @@ public class GmvAnalysisServiceImpl implements IGmvAnalysisService {
     Map<String, Integer> vidDataIndex = new HashMap<>(0);
 
 
-    /**
-     * pid 数据列.
-     */
-    Map<String, Integer> pidDataIndex = new HashMap<>(0);
-
-
-    /**
-     * creator 数据列.
-     */
-    Map<String, Integer> creatorDataIndex = new HashMap<>(0);
-
-
     @Autowired
     SpringMvcFileUpLoad fileUpLoad;
 
@@ -147,16 +130,17 @@ public class GmvAnalysisServiceImpl implements IGmvAnalysisService {
      * 根据PID或者Creator分组查询.
      *
      * @param pageQueryVo
+     * @param user
      * @return
      */
     @Override
-    public PageQueryVo queryGmvDataList(PageQueryVo pageQueryVo) {
+    public PageQueryVo queryGmvDataList(PageQueryVo pageQueryVo, String user) {
         try {
             JSONObject whereParam = pageQueryVo.getPageFilterVo();
             List<String> groupList = pageQueryVo.getPageGroupVo();
             List<String> metricsList = pageQueryVo.getPageMetricsVo();
             if (groupList.contains("creator")) {
-                resetCreatorWhereParam(whereParam);
+                resetCreatorWhereParam(whereParam, user);
             }
             StringBuffer whereStr = generateListWhereStr(whereParam);
             StringBuffer sql = new StringBuffer();
@@ -168,7 +152,7 @@ public class GmvAnalysisServiceImpl implements IGmvAnalysisService {
             }
             CompletableFuture<List<GmvDetailVo>> gmvIndexList = batchHandleService.generateGvmIndex(groupList, whereParam);
             CompletableFuture<List<GmvDetailVo>> gmvDataList = batchHandleService.generateGvmData(groupList, sql);
-            CompletableFuture.allOf(gmvIndexList,gmvDataList).join();
+            CompletableFuture.allOf(gmvIndexList, gmvDataList).join();
             List<GmvDetailVo> gmvList = gmvDataList.get();
             List<GmvDetailVo> indexList = gmvIndexList.get();
             if (groupList.contains("creator")) {
@@ -212,10 +196,32 @@ public class GmvAnalysisServiceImpl implements IGmvAnalysisService {
             PageVO pageVO = new PageVO();
             pageVO.setList(gmvList);
             pageQueryVo.setPageVO(pageVO);
-        }catch (Exception e){
-            log.error("QUERY GMV DATA ERROR:{}",e.getMessage());
+        } catch (Exception e) {
+            log.error("QUERY GMV DATA ERROR:{}", e.getMessage());
         }
         return pageQueryVo;
+    }
+
+    private List<String> generateCreatorByUser(String user) {
+        List<String> creatorList = new ArrayList<>();
+        if (StringUtils.isNotBlank(user)) {
+            List<String> roleList = adminRoleRepo.queryRoleNames(user);
+            roleList.stream().forEach(a -> {
+                if (a.contains("组长")) {
+                    String role = a.split("组长")[0];
+                    List<String> teamMembers = adminRoleRepo.findUserNameByRoleName(role);
+                    List<String> creatorT = accountRepo.findCreatorByUsers(teamMembers);
+                    creatorList.addAll(creatorT);
+                } else {
+                    List<AccountModel> createM = accountRepo.findAllByBelongPerson(user);
+                    if (createM != null && createM.size() > 0) {
+                        List<String> creatorL = createM.stream().map(k -> k.getCreator()).collect(Collectors.toList());
+                        creatorList.addAll(creatorL);
+                    }
+                }
+            });
+        }
+        return creatorList;
     }
 
     private StringBuffer generatePidParamsSql() {
@@ -225,7 +231,13 @@ public class GmvAnalysisServiceImpl implements IGmvAnalysisService {
         return sql;
     }
 
-    private void resetCreatorWhereParam(JSONObject whereParam) {
+    private void resetCreatorWhereParam(JSONObject whereParam, String user) {
+        List<String> creatorRangeList = generateCreatorByUser(user);
+        boolean isSuper = false;
+        List<String> roleList = adminRoleRepo.queryRoleNames(user);
+        if (roleList != null && roleList.size() > 0 && roleList.contains("超级管理员")) {
+            isSuper = true;
+        }
         List<String> userList = new ArrayList<>();
         List<String> userGroupList = new ArrayList<>();
         List<Integer> statusList = new ArrayList<>();
@@ -246,12 +258,14 @@ public class GmvAnalysisServiceImpl implements IGmvAnalysisService {
             params.put("belongPerson", userList);
             params.put("userGroup", userGroupList);
             params.put("status", statusList);
-
             List<AccountModel> creatorList = accountService.fetchAccountList(params).getList();
             List<String> newCreatorList = creatorList.stream().map(a -> a.getCreator()).collect(Collectors.toList());
             List<String> creatorParamList = JSONObject.parseArray(whereParam.getJSONArray("creator").toJSONString(), String.class);
             creatorParamList.addAll(newCreatorList);
-            whereParam.put("creator", creatorParamList);
+            List<String> filterCreatorList  = creatorParamList.stream().filter(a->creatorRangeList.contains(a)).collect(Collectors.toList());
+            whereParam.put("creator", filterCreatorList);
+        } else if (!isSuper) {
+            whereParam.put("creator",creatorRangeList);
         }
     }
 
@@ -473,7 +487,6 @@ public class GmvAnalysisServiceImpl implements IGmvAnalysisService {
         List<GmvDetailVo> videoAddList = JSONObject.parseArray(JSON.toJSONString(jsonObjectList), GmvDetailVo.class);
         return videoAddList;
     }
-
 
 
     /**
@@ -965,29 +978,59 @@ public class GmvAnalysisServiceImpl implements IGmvAnalysisService {
     }
 
     @Override
-    public JSONObject fetchQueryCreatorListParams() {
-        StringBuffer sql = new StringBuffer();
-        sql.append("SELECT creator FROM gmv_detail GROUP BY creator ");
-        List<Map<String, String>> results = generateQueryResult(sql);
-        List<String> creatorList = new ArrayList<>();
-        results.stream().forEach(a -> {
-            a.entrySet().stream().forEach(b -> {
-                String key = b.getKey();
-                String value = b.getValue();
-                switch (key) {
-                    case "creator":
-                        creatorList.add(value);
-                        break;
-                    default:
+    public JSONObject fetchQueryCreatorListParams(String user) {
+        boolean isSuper = false;
+        List<String> roleList = adminRoleRepo.queryRoleNames(user);
+        if (roleList != null && roleList.size() > 0 && roleList.contains("超级管理员")) {
+            isSuper = true;
+        }
+        List<String> creatorRangeList = new ArrayList<>();
+        List<String> teamMembers = new ArrayList<>();
+        if (StringUtils.isNotBlank(user) && !isSuper) {
+            List<String> roleList1 = adminRoleRepo.queryRoleNames(user);
+            roleList1.stream().forEach(a -> {
+                if (a.contains("组长")) {
+                    String role = a.split("组长")[0];
+                    List<String> teamsL = adminRoleRepo.findUserNameByRoleName(role);
+                    List<String> creatorT = accountRepo.findCreatorByUsers(teamsL);
+                    creatorRangeList.addAll(creatorT);
+                    teamMembers.addAll(teamsL);
+                } else {
+                    List<AccountModel> createM = accountRepo.findAllByBelongPerson(user);
+                    if (createM != null && createM.size() > 0) {
+                        List<String> creatorL = createM.stream().map(k -> k.getCreator()).collect(Collectors.toList());
+                        creatorRangeList.addAll(creatorL);
+                    }
+                    teamMembers.add(user);
                 }
             });
-        });
+        }
         JSONObject params = new JSONObject();
-        params.put("creator", creatorList.stream().filter(a -> StringUtils.isNotBlank(a)));
+        if(isSuper){
+            StringBuffer sql = new StringBuffer();
+            sql.append("SELECT creator FROM gmv_detail GROUP BY creator ");
+            List<Map<String, String>> results = generateQueryResult(sql);
+            List<String> creatorList = new ArrayList<>();
+            results.stream().forEach(a -> {
+                a.entrySet().stream().forEach(b -> {
+                    String key = b.getKey();
+                    String value = b.getValue();
+                    switch (key) {
+                        case "creator":
+                            creatorList.add(value);
+                            break;
+                        default:
+                    }
+                });
+            });
+            params.put("creator", creatorList.stream().filter(a -> StringUtils.isNotBlank(a)).collect(Collectors.toList()));
+        }else {
+            params.put("creator", creatorRangeList.stream().filter(a -> StringUtils.isNotBlank(a)).collect(Collectors.toList()));
+        }
         List<String> userList = adminUserRepo.findAll().stream().map(a -> a.getUsername()).collect(Collectors.toList());
         List<String> userGroupList = adminRoleRepo.findAllRoleName();
-        params.put("user", userList);
-        params.put("userGroup", userGroupList);
+        params.put("user", isSuper ? userList : teamMembers);
+        params.put("userGroup", isSuper ? userGroupList : roleList);
         return params;
     }
 
@@ -1433,7 +1476,7 @@ public class GmvAnalysisServiceImpl implements IGmvAnalysisService {
         sql.append("SELECT DISTINCT product_name from gmv_detail where product_id = '" + pid + "' limit 1");
         List<Map<String, String>> result = generateQueryResult(sql);
         StringBuffer productName = new StringBuffer();
-        result.stream().forEach(a->{
+        result.stream().forEach(a -> {
             a.entrySet().stream().forEach(b -> {
                 productName.append(b.getValue());
 
@@ -1443,7 +1486,7 @@ public class GmvAnalysisServiceImpl implements IGmvAnalysisService {
     }
 
     private void setGmvIndexStatement(PreparedStatement statement, List<GmvDetailModel> indexGmvList) {
-        indexGmvList.stream().forEach(a->{
+        indexGmvList.stream().forEach(a -> {
             try {
                 statement.setString(1, String.valueOf(UUID.randomUUID()));
                 statement.setLong(2, a.getDate());
@@ -1451,7 +1494,7 @@ public class GmvAnalysisServiceImpl implements IGmvAnalysisService {
                 statement.setString(4, a.getProduct_id());
                 statement.setDouble(5, a.getGmv());
                 statement.addBatch();
-            }catch (Exception e){
+            } catch (Exception e) {
 
             }
         });

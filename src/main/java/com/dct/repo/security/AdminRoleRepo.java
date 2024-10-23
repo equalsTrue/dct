@@ -29,6 +29,10 @@ public interface AdminRoleRepo extends JpaRepository<AdminRoleModel, String> {
     @Query(value = "select t.id from AdminRoleModel t where t.roleName = ?1")
     String findByRoleName(String roleName);
 
+
+    @Query(value = "select u.username from admin_user u where u.id in (select m.user_id from admin_user_role m where m.role_id in (select t.id from admin_role t where t.roleName like CONCAT('%',?1,'%')))",nativeQuery = true)
+    List<String> findUserNameByRoleName(String roleName);
+
     /**
      * 根据role 名称查询id.
      * @param roleNames

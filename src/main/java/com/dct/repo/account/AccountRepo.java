@@ -50,4 +50,15 @@ public interface AccountRepo extends JpaRepository<AccountModel,String>, JpaSpec
 
     @Query("select t.creator from AccountModel t")
     List<String> findAllCreator();
+
+    /**
+     * 根据belongPerson查询.
+     * @param teamMembers
+     * @return
+     */
+    @Query("select t.creator from AccountModel t where t.belongPerson in (?1)")
+    List<String> findCreatorByUsers(List<String> teamMembers);
+
+
+    List<AccountModel> findAllByBelongPerson(String user);
 }

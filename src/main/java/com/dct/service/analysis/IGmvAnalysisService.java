@@ -17,10 +17,12 @@ import java.util.Map;
 public interface IGmvAnalysisService {
     /**
      * 根据条件查询GMV结果列表
+     *
      * @param pageQueryVo
+     * @param user
      * @return
      */
-    PageQueryVo queryGmvDataList(PageQueryVo pageQueryVo);
+    PageQueryVo queryGmvDataList(PageQueryVo pageQueryVo, String user);
 
 
     /**
@@ -55,7 +57,7 @@ public interface IGmvAnalysisService {
      * 查询creator参数
      * @return
      */
-    JSONObject fetchQueryCreatorListParams();
+    JSONObject fetchQueryCreatorListParams(String user);
 
     /**
      * 处理csv文件

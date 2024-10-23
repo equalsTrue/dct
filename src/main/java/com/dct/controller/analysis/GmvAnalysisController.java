@@ -45,8 +45,8 @@ public class GmvAnalysisController {
      * @return
      */
     @PostMapping("/gmv/list")
-    public ResponseInfoVO analysisList(@RequestBody PageQueryVo pageQueryVo){
-        return ResponseInfoUtil.success(gmvAnalysisService.queryGmvDataList(pageQueryVo));
+    public ResponseInfoVO analysisList(@RequestParam(required = false)String user,@RequestBody PageQueryVo pageQueryVo){
+        return ResponseInfoUtil.success(gmvAnalysisService.queryGmvDataList(pageQueryVo,user));
     }
 
     /**
@@ -100,8 +100,8 @@ public class GmvAnalysisController {
      * @return
      */
     @GetMapping("/gmv/creator/list/params")
-    public ResponseInfoVO fetchCreatorParams(){
-        return ResponseInfoUtil.success(gmvAnalysisService.fetchQueryCreatorListParams());
+    public ResponseInfoVO fetchCreatorParams(@RequestParam(required = false)String user){
+        return ResponseInfoUtil.success(gmvAnalysisService.fetchQueryCreatorListParams(user));
     }
 
 
