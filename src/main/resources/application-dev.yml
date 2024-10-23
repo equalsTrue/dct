@@ -99,11 +99,7 @@ spring:
           max-size: 1000000
           init-capacity: 50
 
-ip2region:
-  external: false
-  index-block-size: 4096
-  total-header-size: 8192
-  location: classpath:ip2region/ip2region.db
+
 
 s3:
   bucketName: dct-gmv

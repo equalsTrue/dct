@@ -1,6 +1,5 @@
 package com.dct;
 
-import com.github.hiwepy.ip2region.spring.boot.EnableIP2region;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.web.servlet.MultipartConfigFactory;
@@ -20,7 +19,6 @@ import javax.servlet.MultipartConfigElement;
  */
 @EnableCaching
 @EnableAsync
-@EnableIP2region
 @SpringBootApplication
 public class DctMangerApplication {
 
