@@ -39,6 +39,22 @@ public class AccountModel extends EntityStringIdBase {
     @Column
     private String country;
 
+    /**
+     * 账号类型
+     */
+    @Column
+    private String account_type;
+    /**
+     * 类目
+     */
+    @Column
+    private String category;
+    /**
+     * 备注
+     */
+    @Column
+    private String notes;
+
 
 
     /**

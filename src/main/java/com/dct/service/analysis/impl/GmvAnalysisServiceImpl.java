@@ -1716,8 +1716,14 @@ public class GmvAnalysisServiceImpl implements IGmvAnalysisService {
                 case "video_views":
                     queryMetricBuffer.append(" sum(video_views)as video_views");
                     break;
+                case "estimated_creator_commission":
+                    queryMetricBuffer.append(" sum(estimated_creator_commission)as estimated_creator_commission");
+                    break;
                 case "creator_commission":
                     queryMetricBuffer.append(" sum(creator_commission)as creator_commission");
+                    break;
+                case "estimated_partner_commission":
+                    queryMetricBuffer.append(" sum(estimated_partner_commission)as estimated_partner_commission");
                     break;
                 case "partner_commission":
                     queryMetricBuffer.append(" sum(partner_commission)as partner_commission");

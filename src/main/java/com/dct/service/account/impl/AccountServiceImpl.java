@@ -230,7 +230,7 @@ public class AccountServiceImpl implements IAccountService {
         String belongPerson = params.getString("belongPerson");
         List<String> userGroupList = adminRoleRepo.queryRoleNames(belongPerson);
         String userGroup = "";
-        if(userGroupList != null && userGroupList.size() > 1){
+        if(userGroupList != null && userGroupList.size() > 0){
             userGroup = userGroupList.get(0);
         }
         String country = params.getString("country");
@@ -288,11 +288,17 @@ public class AccountServiceImpl implements IAccountService {
             String country = params.getString("country");
             String belongUser = params.getString("belongPerson");
             String manager = params.getString("manager");
+            String account_type = params.getString("account_type");
+            String category = params.getString("category");
+            String notes = params.getString("notes");
             accountModel.setCreator(creator);
             accountModel.setUid(uid);
             accountModel.setManager(manager);
             accountModel.setCountry(country);
             accountModel.setBelongPerson(belongUser);
+            accountModel.setAccount_type(account_type);
+            accountModel.setCategory(category);
+            accountModel.setNotes(notes);
             accountRepo.save(accountModel);
             result = "success";
         }catch (Exception e){

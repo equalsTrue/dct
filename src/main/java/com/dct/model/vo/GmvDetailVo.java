@@ -53,7 +53,11 @@ public class GmvDetailVo {
      */
     public Integer videos;
 
+    public String estimated_creator_commission;
+
     public String creator_commission;
+
+    public String estimated_partner_commission;
 
     public String partner_commission;
 
