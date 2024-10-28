@@ -186,7 +186,6 @@ public class GmvAnalysisServiceImpl implements IGmvAnalysisService {
 //                    }
 //                });
                 gmvList.stream().forEach(a -> {
-//                    a.setProduct_name(pidNameMap.get(a.getProduct_id()));
                     a.setProductPicture("https://dct-gmv.s3.ap-southeast-1.amazonaws.com/pid/" + a.getProduct_id() + ".png");
                 });
             }
@@ -197,7 +196,7 @@ public class GmvAnalysisServiceImpl implements IGmvAnalysisService {
             pageVO.setList(gmvList);
             pageQueryVo.setPageVO(pageVO);
         } catch (Exception e) {
-            log.error("QUERY GMV DATA ERROR:{}", e.getMessage());
+            log.error("QUERY GMV DATA ERROR:{}", e.getStackTrace());
         }
         return pageQueryVo;
     }
