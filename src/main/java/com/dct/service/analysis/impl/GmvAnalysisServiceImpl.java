@@ -59,7 +59,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Function;
+import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 /**
@@ -162,7 +165,7 @@ public class GmvAnalysisServiceImpl implements IGmvAnalysisService {
                 //补全归属人
                 List<AccountModel> accountList = accountRepo.findAll();
                 if (accountList != null && accountList.size() > 0) {
-                    Map<String, String> accountMap = accountList.stream()
+                    Map<String, String> accountMap = accountList.stream().filter(distinctKey(AccountModel::getCreator))
                             .filter(accountModel -> StringUtils.isNotBlank(accountModel.getCreator()) && StringUtils.isNotBlank(accountModel.getBelongPerson()))
                             .collect(Collectors.toMap(k -> k.getCreator(), v -> v.getBelongPerson()));
                     gmvList.stream().forEach(a -> {
@@ -172,19 +175,6 @@ public class GmvAnalysisServiceImpl implements IGmvAnalysisService {
                     });
                 }
             } else {
-//                Map<String,String> pidNameMap = new HashMap<>();
-//
-//                gmvList.stream().forEach(a->{
-//                   CompletableFuture<String> info = batchHandleService.queryPidAndName(a.getProduct_id());
-//                    CompletableFuture.allOf(info).join();
-//                    try {
-//                        pidNameMap.put(a.getProduct_id(),info.get());
-//                    } catch (InterruptedException e) {
-//                        throw new RuntimeException(e);
-//                    } catch (ExecutionException e) {
-//                        throw new RuntimeException(e);
-//                    }
-//                });
                 gmvList.stream().forEach(a -> {
                     a.setProductPicture("https://dct-gmv.s3.ap-southeast-1.amazonaws.com/pid/" + a.getProduct_id() + ".png");
                 });
@@ -196,9 +186,14 @@ public class GmvAnalysisServiceImpl implements IGmvAnalysisService {
             pageVO.setList(gmvList);
             pageQueryVo.setPageVO(pageVO);
         } catch (Exception e) {
-            log.error("QUERY GMV DATA ERROR:{}", e.getStackTrace());
+            log.error("QUERY GMV DATA ERROR:{}", e.getMessage());
         }
         return pageQueryVo;
+    }
+
+    public <K,T> Predicate<K> distinctKey(Function<K,T> function){
+        ConcurrentHashMap<T,Boolean> map = new ConcurrentHashMap<>();
+        return t-> null == map.putIfAbsent(function.apply(t),true);
     }
 
     private List<String> generateCreatorByUser(String user) {

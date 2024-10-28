@@ -30,6 +30,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 import javax.persistence.criteria.CriteriaBuilder;
 import javax.persistence.criteria.CriteriaQuery;
+import javax.persistence.criteria.Order;
 import javax.persistence.criteria.Predicate;
 import javax.persistence.criteria.Root;
 import java.io.BufferedReader;
@@ -193,6 +194,9 @@ public class AccountServiceImpl implements IAccountService {
                     predicates.add(in);
                 }
                 criteriaQuery.where(criteriaBuilder.and(predicates.toArray(new Predicate[predicates.size()])));
+                List<Order> orders = new ArrayList<>();
+                orders.add(criteriaBuilder.desc(root.get("createTime")));
+                criteriaQuery.orderBy(orders);
                 return criteriaQuery.getRestriction();
             }
         };
@@ -291,6 +295,14 @@ public class AccountServiceImpl implements IAccountService {
             String account_type = params.getString("account_type");
             String category = params.getString("category");
             String notes = params.getString("notes");
+            String id = params.getString("id");
+            if(StringUtils.isNotBlank(id)){
+                AccountModel originModel = accountRepo.findById(id).get();
+                if(originModel != null){
+                    accountModel = originModel;
+                    accountModel.setId(id);
+                }
+            }
             accountModel.setCreator(creator);
             accountModel.setUid(uid);
             accountModel.setManager(manager);
