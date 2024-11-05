@@ -337,7 +337,7 @@ public class AdminPermissionsServiceImpl implements IAdminPermissionsService {
             adminPermissionsModel.setLevel(Integer.valueOf(String.valueOf(result[8])));
             adminPermissionsModel.setRedirect((String) result[9]);
             adminPermissionsModel.setLeaf(Boolean.valueOf(String.valueOf(result[10])));
-            adminPermissionsModel.setOperator(result[11] != null ? (String) result[11] : MainConstant.ALL);
+            adminPermissionsModel.setOperator(result[11] != null ? (String) result[11] : "");
             allPermissions.add(adminPermissionsModel);
         }
 
