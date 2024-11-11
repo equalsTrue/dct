@@ -38,6 +38,7 @@ import javax.persistence.criteria.CriteriaQuery;
 import javax.persistence.criteria.Predicate;
 import javax.persistence.criteria.Root;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Date;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
@@ -373,7 +374,7 @@ public class ProductServiceImpl implements IProductService {
         JSONArray array = params.getJSONArray("batchApply");
         try {
             array.stream().forEach(a->{
-                batchService.applyProduct(a);
+                applyProduct((JSONObject) a);
             });
             result = MainConstant.SUCCESS;
         }catch (Exception e){
