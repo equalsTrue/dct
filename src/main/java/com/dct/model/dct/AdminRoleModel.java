@@ -34,9 +34,6 @@ public class AdminRoleModel extends EntityStringIdBase {
 	private String roleName;
 
 
-	@Transient
-	private List<String> appIds;
-
 	/**
 	 * 备注
 	 */

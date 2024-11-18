@@ -89,6 +89,11 @@ public class GmvAnalysisController {
         return ResponseInfoUtil.success(gmvAnalysisService.fetchQueryPidListParams(creator));
     }
 
+    @GetMapping("/gmv/creator/user")
+    public ResponseInfoVO fetchUserByGroup(@RequestParam(required = false)String group){
+        return ResponseInfoUtil.success(gmvAnalysisService.fetchUserByGroup(group));
+    }
+
     @GetMapping("/gmv/find/productName")
     public String queryProductName(@RequestParam String pid){
         return gmvAnalysisService.findProductName(pid);

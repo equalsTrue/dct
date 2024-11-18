@@ -14,6 +14,7 @@ import com.dct.common.constant.enums.NumberEnum;
 import com.dct.model.ck.GmvDetailModel;
 import com.dct.model.ck.VideoDetailModel;
 import com.dct.model.dct.AccountModel;
+import com.dct.model.dct.AdminUserModel;
 import com.dct.model.vo.GmvDetailVo;
 import com.dct.model.vo.PageQueryVo;
 import com.dct.model.vo.PageVO;
@@ -54,6 +55,7 @@ import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -1477,6 +1479,36 @@ public class GmvAnalysisServiceImpl implements IGmvAnalysisService {
             });
         });
         return productName.toString();
+    }
+
+    @Override
+    public JSONObject fetchUserByGroup(String group) {
+        List<String> userNames = new ArrayList<>();
+        List<String> createorList = new ArrayList<>();
+        if(StringUtils.isNotBlank(group)){
+            if(group.contains(",")){
+                List<String> groups = Arrays.asList(group.split(","));
+                List<String> finalUserNames = userNames;
+                groups.stream().forEach(a->{
+                    List<String> unames = adminRoleRepo.findUserNameByRoleName(a);
+                    finalUserNames.addAll(unames);
+                });
+                userNames.addAll(finalUserNames.stream().distinct().collect(Collectors.toList()));
+            }else {
+                userNames = adminRoleRepo.findUserNameByRoleName(group);
+            }
+            userNames.stream().forEach(a->{
+                List<AccountModel> createM = accountRepo.findAllByBelongPerson(a);
+                if (createM != null && createM.size() > 0) {
+                    List<String> creatorL = createM.stream().map(k -> k.getCreator()).collect(Collectors.toList());
+                    createorList.addAll(creatorL);
+                }
+            });
+        }
+        JSONObject params = new JSONObject();
+        params.put("user",userNames);
+        params.put("creator",createorList);
+        return params;
     }
 
     private void setGmvIndexStatement(PreparedStatement statement, List<GmvDetailModel> indexGmvList) {

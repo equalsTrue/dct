@@ -87,4 +87,6 @@ public interface IGmvAnalysisService {
     void insertClickHouse(List<JSONObject> indexList, String index);
 
     String findProductName(String pid);
+
+    JSONObject fetchUserByGroup(String group);
 }

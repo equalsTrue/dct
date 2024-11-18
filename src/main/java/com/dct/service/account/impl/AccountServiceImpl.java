@@ -338,6 +338,8 @@ public class AccountServiceImpl implements IAccountService {
         String userGroup = params.getString("userGroup");
         Integer status = params.getInteger("status");
         String country = params.getString("country");
+        String category = params.getString("category");
+        String notes = params.getString("notes");
         AccountModel originModel = accountRepo.findById(id).get();
         AccountModel updateModel = new AccountModel();
         AccountLogModel logModel = new AccountLogModel();
@@ -350,6 +352,8 @@ public class AccountServiceImpl implements IAccountService {
             updateModel.setCountry(originModel.getCountry());
             updateModel.setDeliverTime(originModel.getDeliverTime());
             updateModel.setStatus(originModel.getStatus());
+            updateModel.setCategory(StringUtils.isNotBlank(category) ? category : originModel.getCategory());
+            updateModel.setNotes(StringUtils.isNotBlank(notes) ? notes : originModel.getNotes());
             logModel.setCreator(originModel.getCreator());
             logModel.setUid(originModel.getUid());
             // 是否重新分配人
