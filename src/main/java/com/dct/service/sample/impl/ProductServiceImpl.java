@@ -208,6 +208,11 @@ public class ProductServiceImpl implements IProductService {
         return pageVO;
     }
 
+    @Override
+    public PageVO fetchOutboundList(JSONObject params) {
+        return null;
+    }
+
     /**
      * 更新样品信息.
      * @param params
@@ -272,6 +277,11 @@ public class ProductServiceImpl implements IProductService {
         params.put("user",userList);
         params.put("pid",pidList);
         return params;
+    }
+
+    @Override
+    public JSONObject fetchSampleParams() {
+        return null;
     }
 
     @Override
