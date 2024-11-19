@@ -22,6 +22,8 @@ public interface IAccountService {
 
    PageVO fetchAccountList(JSONObject params);
 
+   PageVO fetchExportAccountList(JSONObject params);
+
     void updateAccount(JSONObject params);
 
     /**

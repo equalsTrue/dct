@@ -193,9 +193,60 @@ public class GmvAnalysisServiceImpl implements IGmvAnalysisService {
         return pageQueryVo;
     }
 
-    public <K,T> Predicate<K> distinctKey(Function<K,T> function){
-        ConcurrentHashMap<T,Boolean> map = new ConcurrentHashMap<>();
-        return t-> null == map.putIfAbsent(function.apply(t),true);
+
+    @Override
+    public PageQueryVo exportGmvDataList(PageQueryVo pageQueryVo, String user) {
+        try {
+            JSONObject whereParam = pageQueryVo.getPageFilterVo();
+            List<String> groupList = pageQueryVo.getPageGroupVo();
+            List<String> metricsList = pageQueryVo.getPageMetricsVo();
+            if (groupList.contains("creator")) {
+                resetCreatorWhereParam(whereParam, user);
+            }
+            StringBuffer whereStr = generateListWhereStr(whereParam);
+            StringBuffer sql = new StringBuffer();
+            sql.append(generateNormalQuery(groupList, metricsList, whereStr));
+            CompletableFuture<List<GmvDetailVo>> gmvIndexList = batchHandleService.generateGvmIndex(groupList, whereParam);
+            CompletableFuture<List<GmvDetailVo>> gmvDataList = batchHandleService.generateGvmData(groupList, sql);
+            CompletableFuture.allOf(gmvIndexList, gmvDataList).join();
+            List<GmvDetailVo> gmvList = gmvDataList.get();
+            List<GmvDetailVo> indexList = gmvIndexList.get();
+            if (groupList.contains("creator")) {
+                gmvList.stream().forEach(a -> {
+                    a.setCreatorPicture("https://dct-gmv.s3.ap-southeast-1.amazonaws.com/creator/" + a.getCreator() + ".png");
+                });
+                //补全归属人
+                List<AccountModel> accountList = accountRepo.findAll();
+                if (accountList != null && accountList.size() > 0) {
+                    Map<String, String> accountMap = accountList.stream().filter(distinctKey(AccountModel::getCreator))
+                            .filter(accountModel -> StringUtils.isNotBlank(accountModel.getCreator()) && StringUtils.isNotBlank(accountModel.getBelongPerson()))
+                            .collect(Collectors.toMap(k -> k.getCreator(), v -> v.getBelongPerson()));
+                    gmvList.stream().forEach(a -> {
+                        if (accountMap.containsKey(a.getCreator())) {
+                            a.setBelong_person(accountMap.get(a.getCreator()));
+                        }
+                    });
+                }
+            } else {
+                gmvList.stream().forEach(a -> {
+                    a.setProductPicture("https://dct-gmv.s3.ap-southeast-1.amazonaws.com/pid/" + a.getProduct_id() + ".png");
+                });
+            }
+            List<GmvDetailVo> addVideoList = generateAddVideoList(groupList, whereParam);
+            List<GmvDetailVo> videoList = generateVideoList(groupList, whereParam);
+            formatIndexAndVideoAdd(gmvList, indexList, addVideoList, videoList, groupList);
+            PageVO pageVO = new PageVO();
+            pageVO.setList(gmvList);
+            pageQueryVo.setPageVO(pageVO);
+        } catch (Exception e) {
+            log.error("QUERY GMV DATA ERROR:{}", e.getMessage());
+        }
+        return pageQueryVo;
+    }
+
+    public <K, T> Predicate<K> distinctKey(Function<K, T> function) {
+        ConcurrentHashMap<T, Boolean> map = new ConcurrentHashMap<>();
+        return t -> null == map.putIfAbsent(function.apply(t), true);
     }
 
     private List<String> generateCreatorByUser(String user) {

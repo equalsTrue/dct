@@ -46,4 +46,6 @@ public interface AdminUserRoleRepo extends JpaRepository<AdminUserRoleModel, Str
     @Transactional(rollbackFor = Exception.class)
     void deleteByRoleId(String roleid);
 
+    @Query("select t.userId from AdminUserRoleModel t where t.roleId = ?1")
+    String getUserId(String roleId);
 }

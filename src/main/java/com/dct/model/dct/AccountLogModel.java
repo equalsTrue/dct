@@ -39,6 +39,9 @@ public class AccountLogModel extends EntityStringIdBase {
 
     @Column
     private String creator;
+	
+    @Column
+    private String handler;
 
     @Column
     private String country;

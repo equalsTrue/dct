@@ -8,6 +8,7 @@ package com.dct.service.account.impl;/**
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
+import com.dct.common.config.datasource.ClickHouseConfig;
 import com.dct.model.dct.AccountLogModel;
 import com.dct.model.dct.AccountModel;
 import com.dct.model.vo.PageVO;
@@ -40,6 +41,10 @@ import java.io.InputStreamReader;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.util.*;
 
 /**
  * @program dct
@@ -75,10 +80,10 @@ public class AccountServiceImpl implements IAccountService {
     public void importAccountFile(List<MultipartFile> files, String manager) {
         try {
             List<AccountModel> allAccountList = new ArrayList<>();
-            files.stream().forEach(a->{
+            files.stream().forEach(a -> {
                 File tempFile = FileUtil.multipartFileToFile(a);
                 List<AccountModel> accountModelList = handleImportAccountTask(tempFile);
-                accountModelList.stream().forEach(b->{
+                accountModelList.stream().forEach(b -> {
                     b.setManager(manager);
                 });
                 allAccountList.addAll(accountModelList);
@@ -144,49 +149,49 @@ public class AccountServiceImpl implements IAccountService {
             @Override
             public Predicate toPredicate(Root root, CriteriaQuery criteriaQuery, CriteriaBuilder criteriaBuilder) {
                 List<Predicate> predicates = new ArrayList<>();
-                if(creatorList != null && creatorList.size() >0){
+                if (creatorList != null && creatorList.size() > 0) {
                     CriteriaBuilder.In<String> in = criteriaBuilder.in(root.get("creator"));
                     for (String creator : creatorList) {
                         in.value(creator);
                     }
                     predicates.add(in);
                 }
-                if(uidList != null && uidList.size() >0){
+                if (uidList != null && uidList.size() > 0) {
                     CriteriaBuilder.In<String> in = criteriaBuilder.in(root.get("uid"));
                     for (String uid : uidList) {
                         in.value(uid);
                     }
                     predicates.add(in);
                 }
-                if(personList != null && personList.size() >0){
+                if (personList != null && personList.size() > 0) {
                     CriteriaBuilder.In<String> in = criteriaBuilder.in(root.get("belongPerson"));
                     for (String person : personList) {
                         in.value(person);
                     }
                     predicates.add(in);
                 }
-                if(groupList != null && groupList.size() >0){
+                if (groupList != null && groupList.size() > 0) {
                     CriteriaBuilder.In<String> in = criteriaBuilder.in(root.get("userGroup"));
                     for (String userGroup : groupList) {
                         in.value(userGroup);
                     }
                     predicates.add(in);
                 }
-                if(countryList != null && countryList.size() >0){
+                if (countryList != null && countryList.size() > 0) {
                     CriteriaBuilder.In<String> in = criteriaBuilder.in(root.get("country"));
                     for (String country : countryList) {
                         in.value(country);
                     }
                     predicates.add(in);
                 }
-                if(assignStatusList != null && assignStatusList.size() >0){
+                if (assignStatusList != null && assignStatusList.size() > 0) {
                     CriteriaBuilder.In<Integer> in = criteriaBuilder.in(root.get("assignStatus"));
                     for (Integer assignStatus : assignStatusList) {
                         in.value(assignStatus);
                     }
                     predicates.add(in);
                 }
-                if(statusList != null && statusList.size() >0){
+                if (statusList != null && statusList.size() > 0) {
                     CriteriaBuilder.In<Integer> in = criteriaBuilder.in(root.get("status"));
                     for (Integer status : statusList) {
                         in.value(status);
@@ -206,20 +211,107 @@ public class AccountServiceImpl implements IAccountService {
         Long total = 0L;
         PageVO pageVO = new PageVO();
         List<AccountModel> list = new ArrayList<>();
-        if(page == null && limit == null){
+        if (page == null && limit == null) {
             list = accountRepo.findAll(specification);
-        }else {
+        } else {
             total = accountRepo.count(specification);
-            page = page >= 1? page - 1: 0;
+            page = page >= 1 ? page - 1 : 0;
             list = accountRepo.findAll(specification, PageRequest.of(page, limit)).getContent();
             pageVO.setTotal(total);
-            list.stream().forEach(a->{
+            list.stream().forEach(a -> {
                 List<String> userGroupList = adminRoleRepo.queryRoleNames(a.getBelongPerson());
                 a.setUserGroup(userGroupList != null && userGroupList.size() > 0  ? userGroupList.get(0) : "");
             });
         }
         pageVO.setList(list);
         pageVO.setPage(page);
+        pageVO.setTotal(total);
+        return pageVO;
+    }
+
+    @Override
+    public PageVO fetchExportAccountList(JSONObject params) {
+        JSONArray creatorArray = params.getJSONArray("creator");
+        JSONArray uidArray = params.getJSONArray("uid");
+        JSONArray personArray = params.getJSONArray("belongPerson");
+        JSONArray groupArray = params.getJSONArray("userGroup");
+        JSONArray countryArray = params.getJSONArray("country");
+        JSONArray statusArray = params.getJSONArray("status");
+        JSONArray assignStatusArray = params.getJSONArray("assignStatus");
+        List<String> creatorList = JSONArray.parseArray(JSON.toJSONString(creatorArray), String.class);
+        List<String> uidList = JSONArray.parseArray(JSON.toJSONString(uidArray), String.class);
+        List<String> personList = JSONArray.parseArray(JSON.toJSONString(personArray), String.class);
+        List<String> groupList = JSONArray.parseArray(JSON.toJSONString(groupArray), String.class);
+        List<String> countryList = JSONArray.parseArray(JSON.toJSONString(countryArray), String.class);
+        List<Integer> statusList = JSONArray.parseArray(JSON.toJSONString(statusArray), Integer.class);
+        List<Integer> assignStatusList = JSONArray.parseArray(JSON.toJSONString(assignStatusArray), Integer.class);
+
+        Specification specification = new Specification() {
+            @Override
+            public Predicate toPredicate(Root root, CriteriaQuery criteriaQuery, CriteriaBuilder criteriaBuilder) {
+                List<Predicate> predicates = new ArrayList<>();
+                if (creatorList != null && creatorList.size() > 0) {
+                    CriteriaBuilder.In<String> in = criteriaBuilder.in(root.get("creator"));
+                    for (String creator : creatorList) {
+                        in.value(creator);
+                    }
+                    predicates.add(in);
+                }
+                if (uidList != null && uidList.size() > 0) {
+                    CriteriaBuilder.In<String> in = criteriaBuilder.in(root.get("uid"));
+                    for (String uid : uidList) {
+                        in.value(uid);
+                    }
+                    predicates.add(in);
+                }
+                if (personList != null && personList.size() > 0) {
+                    CriteriaBuilder.In<String> in = criteriaBuilder.in(root.get("belongPerson"));
+                    for (String person : personList) {
+                        in.value(person);
+                    }
+                    predicates.add(in);
+                }
+                if (groupList != null && groupList.size() > 0) {
+                    CriteriaBuilder.In<String> in = criteriaBuilder.in(root.get("userGroup"));
+                    for (String userGroup : groupList) {
+                        in.value(userGroup);
+                    }
+                    predicates.add(in);
+                }
+                if (countryList != null && countryList.size() > 0) {
+                    CriteriaBuilder.In<String> in = criteriaBuilder.in(root.get("country"));
+                    for (String country : countryList) {
+                        in.value(country);
+                    }
+                    predicates.add(in);
+                }
+                if (assignStatusList != null && assignStatusList.size() > 0) {
+                    CriteriaBuilder.In<Integer> in = criteriaBuilder.in(root.get("assignStatus"));
+                    for (Integer assignStatus : assignStatusList) {
+                        in.value(assignStatus);
+                    }
+                    predicates.add(in);
+                }
+                if (statusList != null && statusList.size() > 0) {
+                    CriteriaBuilder.In<Integer> in = criteriaBuilder.in(root.get("status"));
+                    for (Integer status : statusList) {
+                        in.value(status);
+                    }
+                    predicates.add(in);
+                }
+                criteriaQuery.where(criteriaBuilder.and(predicates.toArray(new Predicate[predicates.size()])));
+                List<Order> orders = new ArrayList<>();
+                orders.add(criteriaBuilder.desc(root.get("createTime")));
+                criteriaQuery.orderBy(orders);
+                return criteriaQuery.getRestriction();
+            }
+        };
+
+        Long total = 0L;
+        PageVO pageVO = new PageVO();
+        List<AccountModel> list = new ArrayList<>();
+        list = accountRepo.findAll(specification);
+        pageVO.setList(list);
         pageVO.setTotal(total);
         return pageVO;
     }
@@ -296,12 +388,36 @@ public class AccountServiceImpl implements IAccountService {
             String category = params.getString("category");
             String notes = params.getString("notes");
             String id = params.getString("id");
-            if(StringUtils.isNotBlank(id)){
+            if (StringUtils.isNotBlank(id)) {
                 AccountModel originModel = accountRepo.findById(id).get();
-                if(originModel != null){
+                if (originModel != null) {
+                    String oldCreator = originModel.getCreator();
+                    if (!Objects.equals(oldCreator, creator)) {
+                        AccountLogModel logModel = new AccountLogModel();
+                        StringBuffer sql = new StringBuffer();
+                        sql.append(" ALTER TABLE gmv_detail UPDATE creator = '"+ creator + "' WHERE creator='" + oldCreator + "'");
+                        System.out.println(sql);
+                        executeSql(sql);
+                        StringBuffer sql1 = new StringBuffer();
+                        sql1.append(" ALTER TABLE video_detail UPDATE creator = '"+ creator + "' WHERE creator='" + oldCreator + "'");
+                        System.out.println(sql1);
+                        executeSql(sql1);
+
+                        logModel.setHandler(oldCreator);
+                        logModel.setCreator(creator);
+                        logModel.setUid(originModel.getUid());
+                        logModel.setManager(originModel.getManager());
+                        logModel.setUpdateTime(new Date());
+                        accountLogRepo.saveAndFlush(logModel);
+                    }
+
                     accountModel = originModel;
                     accountModel.setId(id);
+
                 }
+            } else {
+                Integer assignStatus = 0;
+                accountModel.setAssignStatus(assignStatus);
             }
             accountModel.setCreator(creator);
             accountModel.setUid(uid);
@@ -313,8 +429,8 @@ public class AccountServiceImpl implements IAccountService {
             accountModel.setNotes(notes);
             accountRepo.save(accountModel);
             result = "success";
-        }catch (Exception e){
-            result  = "error";
+        } catch (Exception e) {
+            result = "error";
             log.error("SAVE ACCOUNT ERROR");
         }
         return result;
@@ -335,7 +451,7 @@ public class AccountServiceImpl implements IAccountService {
     public void updateAccount(JSONObject params) {
         String id = params.getString("id");
         String belongPerson = params.getString("belongPerson");
-        String userGroup = params.getString("userGroup");
+        String accountType = params.getString("accountType");
         Integer status = params.getInteger("status");
         String country = params.getString("country");
         String category = params.getString("category");
@@ -352,7 +468,9 @@ public class AccountServiceImpl implements IAccountService {
             updateModel.setCountry(originModel.getCountry());
             updateModel.setDeliverTime(originModel.getDeliverTime());
             updateModel.setStatus(originModel.getStatus());
-            updateModel.setCategory(StringUtils.isNotBlank(category) ? category : originModel.getCategory());
+            updateModel.setAccount_type(originModel.getAccount_type());
+            updateModel.setManager(originModel.getManager());
+			updateModel.setCategory(StringUtils.isNotBlank(category) ? category : originModel.getCategory());
             updateModel.setNotes(StringUtils.isNotBlank(notes) ? notes : originModel.getNotes());
             logModel.setCreator(originModel.getCreator());
             logModel.setUid(originModel.getUid());
@@ -383,6 +501,9 @@ public class AccountServiceImpl implements IAccountService {
             }
             if(StringUtils.isNotBlank(country)){
                 updateModel.setCountry(country);
+            }
+            if (StringUtils.isNotBlank(accountType)) {
+                updateModel.setAccount_type(accountType);
             }
             logModel.setManager(originModel.getManager());
             logModel.setUpdateTime(new Date());
@@ -429,5 +550,24 @@ public class AccountServiceImpl implements IAccountService {
         return logModelList;
     }
 
+    public void executeSql(StringBuffer sql) {
+        Connection conn = null;
+        PreparedStatement stmt = null;
+        ResultSet rs = null;
+
+        try {
+            conn = ClickHouseConfig.getConnection();
+//            conn.setAutoCommit(false);
+            stmt = conn.prepareStatement(sql.toString());
+            int count = stmt.executeUpdate();
+            conn.commit();
+            log.info("EXECUTE UPDATE SQL:{},COUNT:{}", sql, count);
+        } catch (Exception ex) {
+            ex.printStackTrace();
+        } finally {
+            //释放资源
+            ClickHouseConfig.release(conn, stmt, rs);
+        }
+    }
 
 }

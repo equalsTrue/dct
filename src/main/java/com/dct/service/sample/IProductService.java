@@ -19,9 +19,13 @@ public interface IProductService {
 
     PageVO fetchList(JSONObject params);
 
+    PageVO fetchOutboundList(JSONObject params);
+
     String updateProduct(JSONObject params);
 
     JSONObject fetchParams();
+
+    JSONObject fetchSampleParams();
 
     void uploadProductPhoto(String uid, MultipartFile file);
 

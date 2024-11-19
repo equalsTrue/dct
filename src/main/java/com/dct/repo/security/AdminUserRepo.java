@@ -74,6 +74,11 @@ public interface AdminUserRepo extends JpaRepository<AdminUserModel, String> {
     @Query("select t.username from AdminUserModel t ")
     List<String> getAllUserName();
 
-
+    /**
+     * 根据用户名查ID
+     * @return
+     */
+    @Query("select t.username from AdminUserModel t where t.id = ?1")
+    List<String> getUsername(String id);
 
 }

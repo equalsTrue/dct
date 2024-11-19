@@ -51,6 +51,10 @@ public class ProductManagerController {
         return ResponseInfoUtil.success(productService.fetchParams());
     }
 
+    @GetMapping("/sampleParams")
+    public ResponseInfoVO fetchSampleParams(){
+        return ResponseInfoUtil.success(productService.fetchSampleParams());
+    }
 
 
 
@@ -64,6 +68,10 @@ public class ProductManagerController {
         return ResponseInfoUtil.success(productService.fetchList(params));
     }
 
+    @PostMapping("/outboundList")
+    public ResponseInfoVO fetchOutboundList(@RequestBody JSONObject params){
+        return ResponseInfoUtil.success(productService.fetchOutboundList(params));
+    }
 
     /**
      * 查询具体信息.

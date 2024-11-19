@@ -49,6 +49,11 @@ public class GmvAnalysisController {
         return ResponseInfoUtil.success(gmvAnalysisService.queryGmvDataList(pageQueryVo,user));
     }
 
+    @PostMapping("/export/gmv")
+    public ResponseInfoVO exportGmvList(@RequestParam(required = false)String user,@RequestBody PageQueryVo pageQueryVo){
+        return ResponseInfoUtil.success(gmvAnalysisService.exportGmvDataList(pageQueryVo,user));
+    }
+
     /**
      * 单个PID查询.
      * @param pageQueryVo

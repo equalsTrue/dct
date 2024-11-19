@@ -24,6 +24,8 @@ public interface IGmvAnalysisService {
      */
     PageQueryVo queryGmvDataList(PageQueryVo pageQueryVo, String user);
 
+    PageQueryVo exportGmvDataList(PageQueryVo pageQueryVo, String user);
+
 
     /**
      * 单个PID查询

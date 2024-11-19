@@ -110,4 +110,16 @@ public class ProductModel extends EntityStringIdBase {
      */
     @Column(name = "apply_user")
     private String applyUser;
+
+    /**
+     * 团长链接.
+     */
+    @Column(name = "link")
+    private String link;
+
+    /**
+     * 样品分类.
+     */
+    @Column(name = "product_class")
+    private String productClass;
 }

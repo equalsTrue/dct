@@ -67,6 +67,10 @@ public class AccountManagerController {
     public ResponseInfoVO accountList(@RequestBody JSONObject params){
         return ResponseInfoUtil.success(accountService.fetchAccountList(params));
     }
+    @PostMapping("/export")
+    public ResponseInfoVO exportAccountList(@RequestBody JSONObject params){
+        return ResponseInfoUtil.success(accountService.fetchExportAccountList(params));
+    }
 
 
     @GetMapping("/get")
