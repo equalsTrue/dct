@@ -372,12 +372,6 @@ public class ProductServiceImpl implements IProductService {
     }
 
 
-
-    @Override
-    public JSONObject fetchSampleParams() {
-        return null;
-    }
-
     @Override
     public void uploadProductPhoto(String pid, MultipartFile file) {
         String fileType = file.getContentType();
