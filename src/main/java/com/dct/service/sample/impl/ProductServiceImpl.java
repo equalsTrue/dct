@@ -288,10 +288,6 @@ public class ProductServiceImpl implements IProductService {
         return pageVO;
     }
 
-    @Override
-    public PageVO fetchOutboundList(JSONObject params) {
-        return null;
-    }
 
     /**
      * 更新样品信息.
