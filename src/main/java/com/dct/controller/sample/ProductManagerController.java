@@ -51,10 +51,10 @@ public class ProductManagerController {
         return ResponseInfoUtil.success(productService.fetchParams());
     }
 
-    @GetMapping("/sampleParams")
-    public ResponseInfoVO fetchSampleParams(){
-        return ResponseInfoUtil.success(productService.fetchSampleParams());
-    }
+//    @GetMapping("/sampleParams")
+//    public ResponseInfoVO fetchSampleParams(){
+//        return ResponseInfoUtil.success(productService.fetchSampleParams());
+//    }
 
 
 

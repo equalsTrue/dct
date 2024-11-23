@@ -25,7 +25,7 @@ public interface IProductService {
 
     JSONObject fetchParams();
 
-    JSONObject fetchSampleParams();
+//    JSONObject fetchSampleParams();
 
     void uploadProductPhoto(String uid, MultipartFile file);
 

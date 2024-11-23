@@ -79,6 +79,6 @@ public interface AdminUserRepo extends JpaRepository<AdminUserModel, String> {
      * @return
      */
     @Query("select t.username from AdminUserModel t where t.id = ?1")
-    List<String> getUsername(String id);
+    List<String> getRoleUsername(String id);
 
 }

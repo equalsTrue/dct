@@ -17,6 +17,7 @@ import com.dct.model.vo.PageVO;
 import com.dct.repo.account.AccountRepo;
 import com.dct.repo.sample.ProductRepo;
 import com.dct.repo.security.AdminUserRepo;
+import com.dct.repo.security.AdminUserRoleRepo;
 import com.dct.service.sample.IBatchHandleService;
 import com.dct.service.sample.IProductService;
 import com.dct.utils.DateUtil;
@@ -48,7 +49,7 @@ import java.util.stream.Collectors;
  * @program dct
  * @description:
  * @author: lichen
- * @create: 2024/09/12 11:47 
+ * @create: 2024/09/12 11:47
  */
 
 @Service
@@ -59,6 +60,9 @@ public class ProductServiceImpl implements IProductService {
     private AdminUserRepo adminUserRepo;
 
     @Autowired
+    private AdminUserRoleRepo adminUserRoleRepo;
+
+    @Autowired
     private ProductRepo productRepo;
 
     @Autowired
@@ -67,7 +71,6 @@ public class ProductServiceImpl implements IProductService {
 
     @Autowired
     SpringMvcFileUpLoad fileUpLoad;
-
 
 
     @Autowired
@@ -83,6 +86,7 @@ public class ProductServiceImpl implements IProductService {
 
     /**
      * 保存或修改.
+     *
      * @param params
      * @return
      */
@@ -98,11 +102,13 @@ public class ProductServiceImpl implements IProductService {
             String manager = params.getString("manager");
             String region = params.getString("region");
             String storageLocation = params.getString("storageLocation");
+            String productClass = params.getString("productClass");
+            String link = params.getString("link");
             String pid = params.getString("pid");
             String id = params.getString("id");
-            if(StringUtils.isNotBlank(id)){
+            if (StringUtils.isNotBlank(id)) {
                 productModel = productRepo.findById(id).get();
-            }else {
+            } else {
                 productModel.setOutApply(0);
                 productModel.setIsApproval(0);
             }
@@ -113,81 +119,85 @@ public class ProductServiceImpl implements IProductService {
             productModel.setManager(manager);
             productModel.setRegion(region);
             productModel.setStorageLocation(storageLocation);
+            productModel.setProductClass(productClass);
+            productModel.setLink(link);
             productModel.setPid(pid);
             productRepo.save(productModel);
             result = MainConstant.SUCCESS;
-        }catch (Exception e){
+        } catch (Exception e) {
             result = MainConstant.ERROR;
-            log.error("CREATOR PRODUCT INFO ERROR:{}",e.getMessage());
+            log.error("CREATOR PRODUCT INFO ERROR:{}", e.getMessage());
         }
         return result;
     }
 
     @Override
     public PageVO fetchList(JSONObject params) {
-        JSONArray uidArray = params.getJSONArray("uid");
-        JSONArray managerArray = params.getJSONArray("manager");
+        JSONArray pidArray = params.getJSONArray("pid");
+        JSONArray productClassArray = params.getJSONArray("productClass");
+        JSONArray productNameArray = params.getJSONArray("productName");
+        JSONArray linkArray = params.getJSONArray("link");
+        JSONArray regionArray = params.getJSONArray("region");
         JSONArray statusArray = params.getJSONArray("status");
-        JSONArray userArray = params.getJSONArray("user");
-        JSONArray outApplyArray = params.getJSONArray("outApply");
-        JSONArray applyUser = params.getJSONArray("applyUser");
         JSONArray time = params.getJSONArray("time");
         Integer page = params.getInteger("page");
         Integer limit = params.getInteger("limit");
-        List<String> uidList = JSONObject.parseArray(JSON.toJSONString(uidArray),String.class);
-        List<String> managerList = JSONObject.parseArray(JSON.toJSONString(managerArray),String.class);
-        List<Integer> statusList = JSONObject.parseArray(JSON.toJSONString(statusArray),Integer.class);
-        List<String> userList = JSONObject.parseArray(JSON.toJSONString(userArray),String.class);
-        List<Integer> outApplyList = JSONObject.parseArray(JSON.toJSONString(outApplyArray),Integer.class);
-        List<String> applyUserList = JSONObject.parseArray(JSON.toJSONString(applyUser),String.class);
-        List<String> timeList = JSONObject.parseArray(JSON.toJSONString(time),String.class);
+        List<String> pidList = JSONObject.parseArray(JSON.toJSONString(pidArray), String.class);
+        List<String> productClassList = JSONObject.parseArray(JSON.toJSONString(productClassArray), String.class);
+        List<Integer> statusList = JSONObject.parseArray(JSON.toJSONString(statusArray), Integer.class);
+        List<String> productNameList = JSONObject.parseArray(JSON.toJSONString(productNameArray), String.class);
+        List<String> linkList = JSONObject.parseArray(JSON.toJSONString(linkArray), String.class);
+        List<String> regionList = JSONObject.parseArray(JSON.toJSONString(regionArray), String.class);
+        List<String> timeList = JSONObject.parseArray(JSON.toJSONString(time), String.class);
         Specification specification = new Specification() {
             @Override
             public Predicate toPredicate(Root root, CriteriaQuery criteriaQuery, CriteriaBuilder criteriaBuilder) {
                 List<Predicate> predicates = new ArrayList<>();
-                if(managerList != null && managerList.size() >0){
-                    CriteriaBuilder.In<String> in = criteriaBuilder.in(root.get("manager"));
-                    for (String creator : managerList) {
+                Predicate statusPredicate = criteriaBuilder.lessThan(root.get("status"), 3);
+                predicates.add(statusPredicate);
+                if (productClassList != null && productClassList.size() > 0) {
+                    CriteriaBuilder.In<String> in = criteriaBuilder.in(root.get("productClass"));
+                    for (String creator : productClassList) {
                         in.value(creator);
                     }
                     predicates.add(in);
                 }
-                if(uidList != null && uidList.size() >0){
-                    CriteriaBuilder.In<String> in = criteriaBuilder.in(root.get("uid"));
-                    for (String uid : uidList) {
-                        in.value(uid);
+                if (pidList != null && pidList.size() > 0) {
+                    CriteriaBuilder.In<String> in = criteriaBuilder.in(root.get("pid"));
+                    for (String pid : pidList) {
+                        in.value(pid);
                     }
                     predicates.add(in);
                 }
-                if(userList != null && userList.size() >0){
-                    CriteriaBuilder.In<String> in = criteriaBuilder.in(root.get("user"));
-                    for (String person : userList) {
-                        in.value(person);
+                if (linkList != null && linkList.size() > 0) {
+                    CriteriaBuilder.In<String> in = criteriaBuilder.in(root.get("link"));
+                    for (String link : linkList) {
+                        in.value(link);
                     }
                     predicates.add(in);
                 }
-                if(applyUserList != null && applyUserList.size() >0){
-                    CriteriaBuilder.In<String> in = criteriaBuilder.in(root.get("applyUser"));
-                    for (String applyUser : applyUserList) {
-                        in.value(applyUser);
+                if (productNameList != null && productNameList.size() > 0) {
+                    CriteriaBuilder.In<String> in = criteriaBuilder.in(root.get("productName"));
+                    for (String productName : productNameList) {
+                        in.value(productName);
                     }
                     predicates.add(in);
                 }
-                if(outApplyList != null && outApplyList.size() >0){
-                    CriteriaBuilder.In<Integer> in = criteriaBuilder.in(root.get("outApply"));
-                    for (Integer outApply : outApplyList) {
-                        in.value(outApply);
-                    }
-                    predicates.add(in);
-                }
-                if(statusList != null && statusList.size() >0){
+                if (statusList != null && statusList.size() > 0) {
                     CriteriaBuilder.In<Integer> in = criteriaBuilder.in(root.get("status"));
                     for (Integer status : statusList) {
                         in.value(status);
                     }
                     predicates.add(in);
                 }
-                if(timeList != null && timeList.size() > 0){
+                if (regionList != null && regionList.size() > 0) {
+                    CriteriaBuilder.In<String> in = criteriaBuilder.in(root.get("region"));
+                    for (String region : regionList) {
+                        in.value(region);
+                    }
+                    predicates.add(in);
+                }
+                if (timeList != null && timeList.size() > 0) {
                     Date begin = DateUtil.formatTime(timeList.get(0));
                     Date end = DateUtil.formatTime(timeList.get(1));
                     predicates.add(criteriaBuilder.between(root.get("createTime"), begin, end));
@@ -199,7 +209,77 @@ public class ProductServiceImpl implements IProductService {
 
         PageVO pageVO = new PageVO();
         Long total = productRepo.count(specification);
-        page = page >= 1? page - 1: 0;
+        page = page >= 1 ? page - 1 : 0;
+        List<ProductModel> list = productRepo.findAll(specification, PageRequest.of(page, limit)).getContent();
+        pageVO.setTotal(total);
+        pageVO.setList(list);
+        pageVO.setPage(page);
+        pageVO.setTotal(total);
+        return pageVO;
+    }
+
+
+    @Override
+    public PageVO fetchOutboundList(JSONObject params) {
+        JSONArray pidArray = params.getJSONArray("pid");
+        JSONArray statusArray = params.getJSONArray("status");
+        JSONArray applyUserArray = params.getJSONArray("user");
+        JSONArray productNameArray = params.getJSONArray("productName");
+        JSONArray time = params.getJSONArray("time");
+        Integer page = params.getInteger("page");
+        Integer limit = params.getInteger("limit");
+        List<String> pidList = JSONObject.parseArray(JSON.toJSONString(pidArray), String.class);
+        List<Integer> statusList = JSONObject.parseArray(JSON.toJSONString(statusArray), Integer.class);
+        List<String> applyUserList = JSONObject.parseArray(JSON.toJSONString(applyUserArray), String.class);
+        List<String> productNameList = JSONObject.parseArray(JSON.toJSONString(productNameArray), String.class);
+        List<String> timeList = JSONObject.parseArray(JSON.toJSONString(time), String.class);
+        Specification specification = new Specification() {
+            @Override
+            public Predicate toPredicate(Root root, CriteriaQuery criteriaQuery, CriteriaBuilder criteriaBuilder) {
+                List<Predicate> predicates = new ArrayList<>();
+                Predicate statusPredicate = criteriaBuilder.equal(root.get("status"), 3);
+                predicates.add(statusPredicate);
+                if (productNameList != null && productNameList.size() > 0) {
+                    CriteriaBuilder.In<String> in = criteriaBuilder.in(root.get("productName"));
+                    for (String productName : productNameList) {
+                        in.value(productName);
+                    }
+                    predicates.add(in);
+                }
+                if (pidList != null && pidList.size() > 0) {
+                    CriteriaBuilder.In<String> in = criteriaBuilder.in(root.get("pid"));
+                    for (String pid : pidList) {
+                        in.value(pid);
+                    }
+                    predicates.add(in);
+                }
+                if (applyUserList != null && applyUserList.size() > 0) {
+                    CriteriaBuilder.In<String> in = criteriaBuilder.in(root.get("applyUser"));
+                    for (String applyUser : applyUserList) {
+                        in.value(applyUser);
+                    }
+                    predicates.add(in);
+                }
+                if (statusList != null && statusList.size() > 0) {
+                    CriteriaBuilder.In<Integer> in = criteriaBuilder.in(root.get("status"));
+                    for (Integer status : statusList) {
+                        in.value(status);
+                    }
+                    predicates.add(in);
+                }
+                if (timeList != null && timeList.size() > 0) {
+                    Date begin = DateUtil.formatTime(timeList.get(0));
+                    Date end = DateUtil.formatTime(timeList.get(1));
+                    predicates.add(criteriaBuilder.between(root.get("createTime"), begin, end));
+                }
+                criteriaQuery.where(criteriaBuilder.and(predicates.toArray(new Predicate[predicates.size()])));
+                return criteriaQuery.getRestriction();
+            }
+        };
+
+        PageVO pageVO = new PageVO();
+        Long total = productRepo.count(specification);
+        page = page >= 1 ? page - 1 : 0;
         List<ProductModel> list = productRepo.findAll(specification, PageRequest.of(page, limit)).getContent();
         pageVO.setTotal(total);
         pageVO.setList(list);
@@ -210,6 +290,7 @@ public class ProductServiceImpl implements IProductService {
 
     /**
      * 更新样品信息.
+     *
      * @param params
      * @return
      */
@@ -222,23 +303,23 @@ public class ProductServiceImpl implements IProductService {
             String user = params.getString("user");
             String applyUser = params.getString("applyUser");
             ProductModel originModel = productRepo.findById(id).get();
-            if(originModel != null){
-                if(StringUtils.isNotBlank(user)){
+            if (originModel != null) {
+                if (StringUtils.isNotBlank(user)) {
                     originModel.setUser(user);
                 }
-                if(StringUtils.isNotBlank(applyUser)){
+                if (StringUtils.isNotBlank(applyUser)) {
                     originModel.setApplyUser(applyUser);
                 }
             }
             // 修改为在库状态
-            if(status != null ){
+            if (status != null) {
                 originModel.setStatus(status);
-                if(status == 1){
+                if (status == 1) {
                     String pid = originModel.getPid();
                     String color = originModel.getColor();
-                    List<ProductModel> notApplyModelList = productRepo.findNoApplyModel(pid,color);
+                    List<ProductModel> notApplyModelList = productRepo.findNoApplyModel(pid, color);
                     //若存在在库状态的产品则需要合并下
-                    if(notApplyModelList != null && notApplyModelList.size() >0){
+                    if (notApplyModelList != null && notApplyModelList.size() > 0) {
                         ProductModel notApplyModel = notApplyModelList.get(0);
                         originModel.setCount(notApplyModel.getCount() + originModel.getCount());
                         productRepo.deleteById(notApplyModel.getId());
@@ -249,11 +330,11 @@ public class ProductServiceImpl implements IProductService {
                     originModel.setIsApproval(0);
                 }
                 productRepo.saveAndFlush(originModel);
-            }else {
+            } else {
                 productRepo.saveAndFlush(originModel);
             }
             result = MainConstant.SUCCESS;
-        }catch (Exception e){
+        } catch (Exception e) {
             result = MainConstant.ERROR;
             log.error("UPDATE PRODUCT ERROR");
         }
@@ -262,22 +343,35 @@ public class ProductServiceImpl implements IProductService {
 
     /**
      * 获取参数.
+     *
      * @return
      */
     @Override
     public JSONObject fetchParams() {
-        List<String> userList = adminUserRepo.findAll().stream().map(a->a.getUsername()).collect(Collectors.toList());
-        List<String> pidList =  accountRepo.findAll().stream().map(a->a.getUid()).collect(Collectors.toList());
+        List<String> userList = adminUserRepo.findAll().stream().map(a -> a.getUsername()).collect(Collectors.toList());
+        String sampleId = "1793e48f-bc4f-4b76-a411-3c56b81990a6";
+        String userId = adminUserRoleRepo.getUserId(sampleId);
+        List<String> managerList = adminUserRepo.getRoleUsername(userId);
+        List<String> productNameList = productRepo.findAll().stream().map(a -> a.getProductName()).collect(Collectors.toList());
+        List<String> pidList = productRepo.findAll().stream().map(a -> a.getPid()).collect(Collectors.toList());
+        List<String> linkList = productRepo.findAll().stream().map(a -> a.getLink()).collect(Collectors.toList());
+        List<String> productClassList = productRepo.findAll().stream().map(a -> a.getProductClass()).collect(Collectors.toList());
         JSONObject params = new JSONObject();
-        params.put("user",userList);
-        params.put("pid",pidList);
+        params.put("productName", productNameList);
+        params.put("user", userList);
+        params.put("link", linkList);
+        params.put("pid", pidList);
+        params.put("productClass", productClassList);
+        params.put("manager", managerList);
         return params;
     }
+
+
 
     @Override
     public void uploadProductPhoto(String pid, MultipartFile file) {
         String fileType = file.getContentType();
-        if(!org.springframework.util.StringUtils.isEmpty(pid)){
+        if (!org.springframework.util.StringUtils.isEmpty(pid)) {
             String fileName = pid + "." + fileType.split("/")[1];
             String filePath = "product/";
             String s3Url = fileUpLoad.fileUpload(file, fileName, filePath);
@@ -287,6 +381,7 @@ public class ProductServiceImpl implements IProductService {
 
     /**
      * 申请.
+     *
      * @param params
      * @return
      */
@@ -302,14 +397,14 @@ public class ProductServiceImpl implements IProductService {
         String applyKey = MainConstant.APPLY_PRODUCT + MainConstant.COLON + id;
         RLock applyLock = redissonClient.getLock(applyKey);
         ProductModel originModel = productRepo.findById(id).get();
-        if(applyCount == null){
+        if (applyCount == null) {
             applyCount = count;
         }
         try {
             //加锁，同一个ID操作时候其他人不能操作
             if (applyLock.tryLock(NumberEnum.FIVE.getNum(), NumberEnum.TEN.getNum(), TimeUnit.SECONDS)) {
-                if(count > applyCount){
-                    productRepo.updateApprove(id,count-applyCount);
+                if (count >= applyCount) {
+                    productRepo.updateApprove(id, count - applyCount);
                     ProductModel approveModel = new ProductModel();
                     approveModel.setManager(originModel.getManager());
                     approveModel.setUser(originModel.getUser());
@@ -323,19 +418,23 @@ public class ProductServiceImpl implements IProductService {
                     approveModel.setApplyCount(applyCount);
                     approveModel.setPicture(originModel.getPicture());
                     approveModel.setProductName(originModel.getProductName());
+                    approveModel.setLink(originModel.getLink());
+                    approveModel.setStorageLocation(originModel.getStorageLocation());
+                    approveModel.setRegion(originModel.getRegion());
+                    approveModel.setProductClass(originModel.getProductClass());
                     approveModel.setPid(originModel.getPid());
                     productRepo.save(approveModel);
-                }else if(count == applyCount){
-                    productRepo.applyProduct(id,applyCount,applyUser);
+                } else if (count < applyCount) {
+                    productRepo.applyProduct(id, applyCount, applyUser);
                 }
             } else {
                 log.info("APPLY PRODUCT LOCK:{}", applyLock);
             }
             JSONObject notification = new JSONObject();
-            notification.put("product",productName);
-            notification.put("applyUser",applyUser);
-            notification.put("user",user);
-            notification.put("count",applyCount);
+            notification.put("product", productName);
+            notification.put("applyUser", applyUser);
+            notification.put("user", user);
+            notification.put("count", applyCount);
             ProductApplyNotification.sendInfo(JSON.toJSONString(notification));
             result = MainConstant.SUCCESS;
         } catch (Exception e) {
@@ -348,6 +447,7 @@ public class ProductServiceImpl implements IProductService {
 
     /**
      * 审批.
+     *
      * @param params
      * @return
      */
@@ -355,15 +455,15 @@ public class ProductServiceImpl implements IProductService {
     public String approveProduct(JSONObject params) {
         String result = "";
         JSONArray idArray = params.getJSONArray("id");
-        List<String> idList = JSONArray.parseArray(JSON.toJSONString(idArray),String.class);
+        List<String> idList = JSONArray.parseArray(JSON.toJSONString(idArray), String.class);
         try {
-            idList.stream().forEach(a->{
+            idList.stream().forEach(a -> {
                 batchService.approveApply(idList);
             });
             result = MainConstant.SUCCESS;
-        }catch (Exception e){
+        } catch (Exception e) {
             result = MainConstant.ERROR;
-            log.error("BATCH APPROVE PRODUCT ERROR:{}",e.getMessage());
+            log.error("BATCH APPROVE PRODUCT ERROR:{}", e.getMessage());
         }
         return result;
     }
@@ -396,9 +496,9 @@ public class ProductServiceImpl implements IProductService {
         try {
             productRepo.deleteById(id);
             result = MainConstant.SUCCESS;
-        }catch (Exception e){
+        } catch (Exception e) {
             result = MainConstant.ERROR;
-            log.error("DELETE PRODUCT ERROR:{}",e.getMessage());
+            log.error("DELETE PRODUCT ERROR:{}", e.getMessage());
         }
         return result;
     }

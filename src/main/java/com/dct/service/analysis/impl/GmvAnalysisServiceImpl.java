@@ -309,10 +309,10 @@ public class GmvAnalysisServiceImpl implements IGmvAnalysisService {
             List<String> newCreatorList = creatorList.stream().map(a -> a.getCreator()).collect(Collectors.toList());
             List<String> creatorParamList = JSONObject.parseArray(whereParam.getJSONArray("creator").toJSONString(), String.class);
             creatorParamList.addAll(newCreatorList);
-            List<String> filterCreatorList  = creatorParamList.stream().filter(a->creatorRangeList.contains(a)).collect(Collectors.toList());
+            List<String> filterCreatorList = creatorParamList.stream().filter(a -> creatorRangeList.contains(a)).collect(Collectors.toList());
             whereParam.put("creator", filterCreatorList);
         } else if (!isSuper) {
-            whereParam.put("creator",creatorRangeList);
+            whereParam.put("creator", creatorRangeList);
         }
     }
 
@@ -1053,7 +1053,7 @@ public class GmvAnalysisServiceImpl implements IGmvAnalysisService {
             });
         }
         JSONObject params = new JSONObject();
-        if(isSuper){
+        if (isSuper) {
             StringBuffer sql = new StringBuffer();
             sql.append("SELECT creator FROM gmv_detail GROUP BY creator ");
             List<Map<String, String>> results = generateQueryResult(sql);
@@ -1071,7 +1071,7 @@ public class GmvAnalysisServiceImpl implements IGmvAnalysisService {
                 });
             });
             params.put("creator", creatorList.stream().filter(a -> StringUtils.isNotBlank(a)).collect(Collectors.toList()));
-        }else {
+        } else {
             params.put("creator", creatorRangeList.stream().filter(a -> StringUtils.isNotBlank(a)).collect(Collectors.toList()));
         }
         List<String> userList = adminUserRepo.findAll().stream().map(a -> a.getUsername()).collect(Collectors.toList());

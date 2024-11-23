@@ -50,7 +50,7 @@ import java.util.*;
  * @program dct
  * @description:
  * @author: lichen
- * @create: 2024/09/10 16:23 
+ * @create: 2024/09/10 16:23
  */
 @Service
 @Slf4j
@@ -96,6 +96,7 @@ public class AccountServiceImpl implements IAccountService {
 
     /**
      * 执行导入任务.
+     *
      * @param file
      * @return
      */
@@ -121,8 +122,8 @@ public class AccountServiceImpl implements IAccountService {
                 accountModelList.add(accountModel);
                 index++;
             }
-        }catch (Exception e){
-            log.error("SUBMIT FILE ERROR:{}",e.getMessage());
+        } catch (Exception e) {
+            log.error("SUBMIT FILE ERROR:{}", e.getMessage());
         }
         return accountModelList;
     }
@@ -137,13 +138,13 @@ public class AccountServiceImpl implements IAccountService {
         JSONArray countryArray = params.getJSONArray("country");
         JSONArray statusArray = params.getJSONArray("status");
         JSONArray assignStatusArray = params.getJSONArray("assignStatus");
-        List<String> creatorList = JSONArray.parseArray(JSON.toJSONString(creatorArray),String.class);
-        List<String> uidList = JSONArray.parseArray(JSON.toJSONString(uidArray),String.class);
-        List<String> personList = JSONArray.parseArray(JSON.toJSONString(personArray),String.class);
-        List<String> groupList = JSONArray.parseArray(JSON.toJSONString(groupArray),String.class);
-        List<String> countryList = JSONArray.parseArray(JSON.toJSONString(countryArray),String.class);
-        List<Integer> statusList = JSONArray.parseArray(JSON.toJSONString(statusArray),Integer.class);
-        List<Integer> assignStatusList = JSONArray.parseArray(JSON.toJSONString(assignStatusArray),Integer.class);
+        List<String> creatorList = JSONArray.parseArray(JSON.toJSONString(creatorArray), String.class);
+        List<String> uidList = JSONArray.parseArray(JSON.toJSONString(uidArray), String.class);
+        List<String> personList = JSONArray.parseArray(JSON.toJSONString(personArray), String.class);
+        List<String> groupList = JSONArray.parseArray(JSON.toJSONString(groupArray), String.class);
+        List<String> countryList = JSONArray.parseArray(JSON.toJSONString(countryArray), String.class);
+        List<Integer> statusList = JSONArray.parseArray(JSON.toJSONString(statusArray), Integer.class);
+        List<Integer> assignStatusList = JSONArray.parseArray(JSON.toJSONString(assignStatusArray), Integer.class);
 
         Specification specification = new Specification() {
             @Override
@@ -220,7 +221,7 @@ public class AccountServiceImpl implements IAccountService {
             pageVO.setTotal(total);
             list.stream().forEach(a -> {
                 List<String> userGroupList = adminRoleRepo.queryRoleNames(a.getBelongPerson());
-                a.setUserGroup(userGroupList != null && userGroupList.size() > 0  ? userGroupList.get(0) : "");
+                a.setUserGroup(userGroupList != null && userGroupList.size() > 0 ? userGroupList.get(0) : "");
             });
         }
         pageVO.setList(list);
@@ -318,6 +319,7 @@ public class AccountServiceImpl implements IAccountService {
 
     /**
      * 分配账号.
+     *
      * @param params
      */
     @Override
@@ -326,17 +328,18 @@ public class AccountServiceImpl implements IAccountService {
         String belongPerson = params.getString("belongPerson");
         List<String> userGroupList = adminRoleRepo.queryRoleNames(belongPerson);
         String userGroup = "";
-        if(userGroupList != null && userGroupList.size() > 0){
+        if (userGroupList != null && userGroupList.size() > 0) {
             userGroup = userGroupList.get(0);
         }
         String country = params.getString("country");
         List<String> uidList = new ArrayList<>();
         uidList.add(uid);
-        accountRepo.assignAccount(uidList,belongPerson,userGroup,country,DateUtil.formatYyyyMmDdHhMmSs(new Date()));
+        accountRepo.assignAccount(uidList, belongPerson, userGroup, country, DateUtil.formatYyyyMmDdHhMmSs(new Date()));
     }
 
     /**
      * 显示参数.
+     *
      * @return
      */
     @Override
@@ -346,20 +349,21 @@ public class AccountServiceImpl implements IAccountService {
         List<AccountModel> accountVoList = accountRepo.findAll();
         List<String> creatorList = new ArrayList<>();
         List<String> uidList = new ArrayList<>();
-        accountVoList.stream().forEach(a->{
+        accountVoList.stream().forEach(a -> {
             creatorList.add(a.getCreator());
             uidList.add(a.getUid());
         });
         JSONObject params = new JSONObject();
-        params.put("belongPerson",userList);
-        params.put("userGroup",roleList);
-        params.put("creator",creatorList);
-        params.put("uid",uidList);
+        params.put("belongPerson", userList);
+        params.put("userGroup", roleList);
+        params.put("creator", creatorList);
+        params.put("uid", uidList);
         return params;
     }
 
     /**
      * 删除账号
+     *
      * @param id
      * @return
      */
@@ -368,7 +372,7 @@ public class AccountServiceImpl implements IAccountService {
         String result = "";
         try {
             accountRepo.deleteById(id);
-        }catch (Exception e){
+        } catch (Exception e) {
             log.error("DELETE ACCOUNT ERROR");
         }
         return result;
@@ -396,11 +400,9 @@ public class AccountServiceImpl implements IAccountService {
                         AccountLogModel logModel = new AccountLogModel();
                         StringBuffer sql = new StringBuffer();
                         sql.append(" ALTER TABLE gmv_detail UPDATE creator = '"+ creator + "' WHERE creator='" + oldCreator + "'");
-                        System.out.println(sql);
                         executeSql(sql);
                         StringBuffer sql1 = new StringBuffer();
                         sql1.append(" ALTER TABLE video_detail UPDATE creator = '"+ creator + "' WHERE creator='" + oldCreator + "'");
-                        System.out.println(sql1);
                         executeSql(sql1);
 
                         logModel.setHandler(oldCreator);
@@ -445,6 +447,7 @@ public class AccountServiceImpl implements IAccountService {
 
     /**
      * 更新账号信息.
+     *
      * @param params
      */
     @Override
@@ -459,7 +462,7 @@ public class AccountServiceImpl implements IAccountService {
         AccountModel originModel = accountRepo.findById(id).get();
         AccountModel updateModel = new AccountModel();
         AccountLogModel logModel = new AccountLogModel();
-        if(originModel != null){
+        if (originModel != null) {
             updateModel.setCreateTime(originModel.getCreateTime());
             updateModel.setId(originModel.getId());
             updateModel.setCreator(originModel.getCreator());
@@ -475,31 +478,31 @@ public class AccountServiceImpl implements IAccountService {
             logModel.setCreator(originModel.getCreator());
             logModel.setUid(originModel.getUid());
             // 是否重新分配人
-            if(StringUtils.isNotBlank(belongPerson)){
+            if (StringUtils.isNotBlank(belongPerson)) {
                 updateModel.setBelongPerson(belongPerson);
                 updateModel.setUserGroup(adminRoleRepo.queryRoleNames(belongPerson).get(0));
                 logModel.setBeforePerson(originModel.getBelongPerson());
                 logModel.setLocalPerson(belongPerson);
-            }else {
+            } else {
                 updateModel.setBelongPerson(originModel.getBelongPerson());
                 updateModel.setUserGroup(originModel.getUserGroup());
                 logModel.setLocalPerson(originModel.getBelongPerson());
                 logModel.setBeforePerson(originModel.getBelongPerson());
             }
-            if(status != null){
+            if (status != null) {
                 updateModel.setStatus(status);
                 logModel.setBeforeStatus(originModel.getStatus());
                 logModel.setLocalStatus(status);
-                if(status == 1){
+                if (status == 1) {
                     updateModel.setCloseTime(DateUtil.formatYyyyMmDdHhMmSs(new Date()));
-                }else if(status == 2){
+                } else if (status == 2) {
                     updateModel.setTerminateTime(DateUtil.formatYyyyMmDdHhMmSs(new Date()));
                 }
-            }else {
+            } else {
                 logModel.setBeforeStatus(originModel.getStatus());
                 logModel.setLocalStatus(originModel.getStatus());
             }
-            if(StringUtils.isNotBlank(country)){
+            if (StringUtils.isNotBlank(country)) {
                 updateModel.setCountry(country);
             }
             if (StringUtils.isNotBlank(accountType)) {
@@ -511,13 +514,11 @@ public class AccountServiceImpl implements IAccountService {
             accountLogRepo.saveAndFlush(logModel);
         }
 
-
-
-
     }
 
     /**
      * 查看日志.
+     *
      * @param params
      * @return
      */
@@ -526,21 +527,21 @@ public class AccountServiceImpl implements IAccountService {
         String uid = params.getString("uid");
         String creator = params.getString("creator");
         JSONArray timeArray = params.getJSONArray("time");
-        List<String> timeList = JSONObject.parseArray(JSON.toJSONString(timeArray),String.class);
+        List<String> timeList = JSONObject.parseArray(JSON.toJSONString(timeArray), String.class);
         Specification specification = new Specification() {
             @Override
             public Predicate toPredicate(Root root, CriteriaQuery criteriaQuery, CriteriaBuilder criteriaBuilder) {
                 List<Predicate> predicates = new ArrayList<>();
-                if(timeList != null && timeList.size() > 0){
+                if (timeList != null && timeList.size() > 0) {
                     Date begin = DateUtil.formatTime(timeList.get(0));
                     Date end = DateUtil.formatTime(timeList.get(1));
                     predicates.add(criteriaBuilder.between(root.get("updateTime"), begin, end));
                 }
-                if(StringUtils.isNotBlank(uid)){
-                    predicates.add(criteriaBuilder.equal(root.get("uid"),uid));
+                if (StringUtils.isNotBlank(uid)) {
+                    predicates.add(criteriaBuilder.equal(root.get("uid"), uid));
                 }
-                if(StringUtils.isNotBlank(creator)){
-                    predicates.add(criteriaBuilder.equal(root.get("creator"),creator));
+                if (StringUtils.isNotBlank(creator)) {
+                    predicates.add(criteriaBuilder.equal(root.get("creator"), creator));
                 }
                 criteriaQuery.where(criteriaBuilder.and(predicates.toArray(new Predicate[predicates.size()])));
                 return criteriaQuery.getRestriction();
