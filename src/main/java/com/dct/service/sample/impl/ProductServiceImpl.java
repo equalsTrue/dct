@@ -288,6 +288,11 @@ public class ProductServiceImpl implements IProductService {
         return pageVO;
     }
 
+    @Override
+    public PageVO fetchOutboundList(JSONObject params) {
+        return null;
+    }
+
     /**
      * 更新样品信息.
      *
@@ -367,6 +372,11 @@ public class ProductServiceImpl implements IProductService {
     }
 
 
+
+    @Override
+    public JSONObject fetchSampleParams() {
+        return null;
+    }
 
     @Override
     public void uploadProductPhoto(String pid, MultipartFile file) {
