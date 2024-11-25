@@ -312,7 +312,10 @@ public class GmvAnalysisServiceImpl implements IGmvAnalysisService {
             List<String> filterCreatorList = creatorParamList.stream().filter(a -> creatorRangeList.contains(a)).collect(Collectors.toList());
             whereParam.put("creator", filterCreatorList);
         } else if (!isSuper) {
-            whereParam.put("creator", creatorRangeList);
+            if(whereParam.get("creator") == null || whereParam.getJSONArray("creator").size() == 0){
+                whereParam.put("creator", creatorRangeList);
+            }
+
         }
     }
 
