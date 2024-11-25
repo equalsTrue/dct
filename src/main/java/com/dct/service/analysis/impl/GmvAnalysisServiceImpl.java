@@ -295,6 +295,7 @@ public class GmvAnalysisServiceImpl implements IGmvAnalysisService {
             }
             if (keyStr.equals("userGroup")) {
                 userGroupList = JSONObject.parseArray(whereParam.getJSONArray(keyStr).toJSONString(), String.class);
+                userGroupList = transUserGroupLeader(userGroupList);
             }
             if (keyStr.equals("status")) {
                 statusList = JSONObject.parseArray(whereParam.getJSONArray(keyStr).toJSONString(), Integer.class);
@@ -317,6 +318,16 @@ public class GmvAnalysisServiceImpl implements IGmvAnalysisService {
             }
 
         }
+    }
+
+    private List<String> transUserGroupLeader(List<String> userGroupList) {
+        List<String> handleGroupList = new ArrayList<>();
+        userGroupList.stream().forEach(a->{
+            if(a.contains("组长")){
+                handleGroupList.add(a.split("组长")[0]);
+            }
+        });
+        return handleGroupList;
     }
 
     private StringBuffer generateListWhereStr(JSONObject whereParam) {
