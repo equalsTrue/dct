@@ -219,6 +219,89 @@ public class ProductServiceImpl implements IProductService {
     }
 
 
+
+    public PageVO fetchExportList(JSONObject params) {
+        JSONArray pidArray = params.getJSONArray("pid");
+        JSONArray productClassArray = params.getJSONArray("productClass");
+        JSONArray productNameArray = params.getJSONArray("productName");
+        JSONArray linkArray = params.getJSONArray("link");
+        JSONArray regionArray = params.getJSONArray("region");
+        JSONArray statusArray = params.getJSONArray("status");
+        JSONArray time = params.getJSONArray("time");
+        List<String> pidList = JSONObject.parseArray(JSON.toJSONString(pidArray), String.class);
+        List<String> productClassList = JSONObject.parseArray(JSON.toJSONString(productClassArray), String.class);
+        List<Integer> statusList = JSONObject.parseArray(JSON.toJSONString(statusArray), Integer.class);
+        List<String> productNameList = JSONObject.parseArray(JSON.toJSONString(productNameArray), String.class);
+        List<String> linkList = JSONObject.parseArray(JSON.toJSONString(linkArray), String.class);
+        List<String> regionList = JSONObject.parseArray(JSON.toJSONString(regionArray), String.class);
+        List<String> timeList = JSONObject.parseArray(JSON.toJSONString(time), String.class);
+        Specification specification = new Specification() {
+            @Override
+            public Predicate toPredicate(Root root, CriteriaQuery criteriaQuery, CriteriaBuilder criteriaBuilder) {
+                List<Predicate> predicates = new ArrayList<>();
+                Predicate statusPredicate = criteriaBuilder.lessThan(root.get("status"), 3);
+                predicates.add(statusPredicate);
+                if (productClassList != null && productClassList.size() > 0) {
+                    CriteriaBuilder.In<String> in = criteriaBuilder.in(root.get("productClass"));
+                    for (String creator : productClassList) {
+                        in.value(creator);
+                    }
+                    predicates.add(in);
+                }
+                if (pidList != null && pidList.size() > 0) {
+                    CriteriaBuilder.In<String> in = criteriaBuilder.in(root.get("pid"));
+                    for (String pid : pidList) {
+                        in.value(pid);
+                    }
+                    predicates.add(in);
+                }
+                if (linkList != null && linkList.size() > 0) {
+                    CriteriaBuilder.In<String> in = criteriaBuilder.in(root.get("link"));
+                    for (String link : linkList) {
+                        in.value(link);
+                    }
+                    predicates.add(in);
+                }
+                if (productNameList != null && productNameList.size() > 0) {
+                    CriteriaBuilder.In<String> in = criteriaBuilder.in(root.get("productName"));
+                    for (String productName : productNameList) {
+                        in.value(productName);
+                    }
+                    predicates.add(in);
+                }
+                if (statusList != null && statusList.size() > 0) {
+                    CriteriaBuilder.In<Integer> in = criteriaBuilder.in(root.get("status"));
+                    for (Integer status : statusList) {
+                        in.value(status);
+                    }
+                    predicates.add(in);
+                }
+                if (regionList != null && regionList.size() > 0) {
+                    CriteriaBuilder.In<String> in = criteriaBuilder.in(root.get("region"));
+                    for (String region : regionList) {
+                        in.value(region);
+                    }
+                    predicates.add(in);
+                }
+                if (timeList != null && timeList.size() > 0) {
+                    Date begin = DateUtil.formatTime(timeList.get(0));
+                    Date end = DateUtil.formatTime(timeList.get(1));
+                    predicates.add(criteriaBuilder.between(root.get("createTime"), begin, end));
+                }
+                criteriaQuery.where(criteriaBuilder.and(predicates.toArray(new Predicate[predicates.size()])));
+                return criteriaQuery.getRestriction();
+            }
+        };
+
+        PageVO pageVO = new PageVO();
+        Long total = productRepo.count(specification);
+        List<ProductModel> list = productRepo.findAll(specification);
+        pageVO.setTotal(total);
+        pageVO.setList(list);
+        pageVO.setTotal(total);
+        return pageVO;
+    }
+
     @Override
     public PageVO fetchOutboundList(JSONObject params) {
         JSONArray pidArray = params.getJSONArray("pid");
@@ -237,7 +320,7 @@ public class ProductServiceImpl implements IProductService {
             @Override
             public Predicate toPredicate(Root root, CriteriaQuery criteriaQuery, CriteriaBuilder criteriaBuilder) {
                 List<Predicate> predicates = new ArrayList<>();
-                Predicate statusPredicate = criteriaBuilder.equal(root.get("status"), 3);
+                Predicate statusPredicate = criteriaBuilder.greaterThan(root.get("status"), 2);
                 predicates.add(statusPredicate);
                 if (productNameList != null && productNameList.size() > 0) {
                     CriteriaBuilder.In<String> in = criteriaBuilder.in(root.get("productName"));
@@ -288,7 +371,6 @@ public class ProductServiceImpl implements IProductService {
         return pageVO;
     }
 
-
     /**
      * 更新样品信息.
      *
@@ -298,46 +380,96 @@ public class ProductServiceImpl implements IProductService {
     @Override
     public String updateProduct(JSONObject params) {
         String result = "";
-        try {
-            String id = params.getString("id");
-            Integer status = params.getInteger("status");
-            String user = params.getString("user");
-            String applyUser = params.getString("applyUser");
-            ProductModel originModel = productRepo.findById(id).get();
-            if (originModel != null) {
-                if (StringUtils.isNotBlank(user)) {
-                    originModel.setUser(user);
-                }
-                if (StringUtils.isNotBlank(applyUser)) {
-                    originModel.setApplyUser(applyUser);
-                }
-            }
-            // 修改为在库状态
-            if (status != null) {
-                originModel.setStatus(status);
-                if (status == 1) {
-                    String pid = originModel.getPid();
-                    String color = originModel.getColor();
-                    List<ProductModel> notApplyModelList = productRepo.findNoApplyModel(pid, color);
-                    //若存在在库状态的产品则需要合并下
-                    if (notApplyModelList != null && notApplyModelList.size() > 0) {
-                        ProductModel notApplyModel = notApplyModelList.get(0);
-                        originModel.setCount(notApplyModel.getCount() + originModel.getCount());
-                        productRepo.deleteById(notApplyModel.getId());
+        JSONArray array = params.getJSONArray("batchApply");
+        if (array != null) {
+            try {
+                for (int i = 0; i < array.size(); i++) {
+                    JSONObject batchItem = array.getJSONObject(i);
+                    String id = batchItem.getString("id");
+                    Integer status = batchItem.getInteger("status");
+                    String user = batchItem.getString("user");
+                    String applyUser = batchItem.getString("applyUser");
+                    ProductModel originModel = productRepo.findById(id).get();
+                    if (originModel != null) {
+                        if (StringUtils.isNotBlank(user)) {
+                            originModel.setUser(user);
+                        }
+                        if (StringUtils.isNotBlank(applyUser)) {
+                            originModel.setApplyUser(applyUser);
+                        }
                     }
-                    originModel.setCount(originModel.getCount());
-                    originModel.setApplyCount(0);
-                    originModel.setOutApply(0);
-                    originModel.setIsApproval(0);
+                    // 修改为在库状态
+                    if (status != null) {
+                        originModel.setStatus(status);
+                        if (status == 1 || status == 4) {
+                            System.out.println("status   " + status);
+                            String pid = originModel.getPid();
+                            String color = originModel.getColor();
+                            List<ProductModel> notApplyModelList = productRepo.findNoApplyModel(pid, color);
+                            //若存在在库状态的产品则需要合并下
+                            if (notApplyModelList != null && notApplyModelList.size() > 0) {
+                                ProductModel notApplyModel = notApplyModelList.get(0);
+                                originModel.setCount(notApplyModel.getCount() + originModel.getCount());
+                                productRepo.deleteById(notApplyModel.getId());
+                            }
+                            originModel.setCount(originModel.getCount());
+                            originModel.setApplyCount(0);
+                            originModel.setOutApply(0);
+                            originModel.setIsApproval(0);
+                            originModel.setStatus(1);
+                        }
+                        productRepo.saveAndFlush(originModel);
+                    } else {
+                        productRepo.saveAndFlush(originModel);
+                    }
                 }
-                productRepo.saveAndFlush(originModel);
-            } else {
-                productRepo.saveAndFlush(originModel);
+                result = MainConstant.SUCCESS;
+            } catch (Exception e) {
+                result = MainConstant.ERROR;
+                log.error("UPDATE PRODUCT ERROR");
             }
-            result = MainConstant.SUCCESS;
-        } catch (Exception e) {
-            result = MainConstant.ERROR;
-            log.error("UPDATE PRODUCT ERROR");
+        } else {
+            try {
+                String id = params.getString("id");
+                Integer status = params.getInteger("status");
+                String user = params.getString("user");
+                String applyUser = params.getString("applyUser");
+                ProductModel originModel = productRepo.findById(id).get();
+                if (originModel != null) {
+                    if (StringUtils.isNotBlank(user)) {
+                        originModel.setUser(user);
+                    }
+                    if (StringUtils.isNotBlank(applyUser)) {
+                        originModel.setApplyUser(applyUser);
+                    }
+                }
+                // 修改为在库状态
+                if (status != null) {
+                    originModel.setStatus(status);
+                    if (status == 1) {
+                        String pid = originModel.getPid();
+                        String color = originModel.getColor();
+                        List<ProductModel> notApplyModelList = productRepo.findNoApplyModel(pid, color);
+                        //若存在在库状态的产品则需要合并下
+                        if (notApplyModelList != null && notApplyModelList.size() > 0) {
+                            ProductModel notApplyModel = notApplyModelList.get(0);
+                            originModel.setCount(notApplyModel.getCount() + originModel.getCount());
+                            productRepo.deleteById(notApplyModel.getId());
+                        }
+                        originModel.setCount(originModel.getCount());
+                        originModel.setApplyCount(0);
+                        originModel.setOutApply(0);
+                        originModel.setIsApproval(0);
+                    }
+                    productRepo.saveAndFlush(originModel);
+                } else {
+                    productRepo.saveAndFlush(originModel);
+                }
+                result = MainConstant.SUCCESS;
+            } catch (Exception e) {
+                result = MainConstant.ERROR;
+                log.error("UPDATE PRODUCT ERROR");
+            }
         }
         return result;
     }
@@ -353,10 +485,10 @@ public class ProductServiceImpl implements IProductService {
         String sampleId = "1793e48f-bc4f-4b76-a411-3c56b81990a6";
         String userId = adminUserRoleRepo.getUserId(sampleId);
         List<String> managerList = adminUserRepo.getRoleUsername(userId);
-        List<String> productNameList = productRepo.findAll().stream().map(a -> a.getProductName()).collect(Collectors.toList());
-        List<String> pidList = productRepo.findAll().stream().map(a -> a.getPid()).collect(Collectors.toList());
-        List<String> linkList = productRepo.findAll().stream().map(a -> a.getLink()).collect(Collectors.toList());
-        List<String> productClassList = productRepo.findAll().stream().map(a -> a.getProductClass()).collect(Collectors.toList());
+        List<String> productNameList = productRepo.findAll().stream().map(a -> a.getProductName()).distinct().collect(Collectors.toList());
+        List<String> pidList = productRepo.findAll().stream().map(a -> a.getPid()).distinct().collect(Collectors.toList());
+        List<String> linkList = productRepo.findAll().stream().map(a -> a.getLink()).distinct().collect(Collectors.toList());
+        List<String> productClassList = productRepo.findAll().stream().map(a -> a.getProductClass()).distinct().collect(Collectors.toList());
         JSONObject params = new JSONObject();
         params.put("productName", productNameList);
         params.put("user", userList);
@@ -366,6 +498,7 @@ public class ProductServiceImpl implements IProductService {
         params.put("manager", managerList);
         return params;
     }
+
 
 
     @Override

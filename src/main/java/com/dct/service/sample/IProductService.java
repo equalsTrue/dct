@@ -19,6 +19,8 @@ public interface IProductService {
 
     PageVO fetchList(JSONObject params);
 
+    PageVO fetchExportList(JSONObject params);
+
     PageVO fetchOutboundList(JSONObject params);
 
     String updateProduct(JSONObject params);

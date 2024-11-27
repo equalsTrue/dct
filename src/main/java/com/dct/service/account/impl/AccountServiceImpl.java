@@ -346,6 +346,8 @@ public class AccountServiceImpl implements IAccountService {
     public JSONObject fetchAccountParam() {
         List<String> userList = adminUserRepo.getAllUserName();
         List<String> roleList = roleRepo.findAllRoleName();
+        List<String> handleList = accountLogRepo.findAllHandles();
+        List<String> logUidList = accountLogRepo.findAllUid();
         List<AccountModel> accountVoList = accountRepo.findAll();
         List<String> creatorList = new ArrayList<>();
         List<String> uidList = new ArrayList<>();
@@ -358,6 +360,8 @@ public class AccountServiceImpl implements IAccountService {
         params.put("userGroup", roleList);
         params.put("creator", creatorList);
         params.put("uid", uidList);
+        params.put("handles", handleList);
+        params.put("logUid", logUidList);
         return params;
     }
 

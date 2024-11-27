@@ -152,6 +152,15 @@ public class GmvAnalysisServiceImpl implements IGmvAnalysisService {
             Integer page = whereParam.getInteger("page");
             Integer limit = whereParam.getInteger("limit");
             sql.append(generateNormalQuery(groupList, metricsList, whereStr));
+            StringBuffer totalSql = new StringBuffer();
+            totalSql.append(" SELECT COUNT(*) FROM (" + sql + ") AS total_count");
+            List<Map<String, String>> results = generateQueryResult(totalSql);
+            Long total = 0L;
+            if (results != null && !results.isEmpty()) {
+                Map<String, String> resultMap = results.get(0);
+                String countValue = resultMap.get("COUNT()");
+                total = Long.parseLong(countValue);
+            }
             if (page != null && limit != null) {
                 sql.append(" limit " + limit + " offset (" + (page - 1) + ") * " + limit);
             }
@@ -184,8 +193,10 @@ public class GmvAnalysisServiceImpl implements IGmvAnalysisService {
             List<GmvDetailVo> addVideoList = generateAddVideoList(groupList, whereParam);
             List<GmvDetailVo> videoList = generateVideoList(groupList, whereParam);
             formatIndexAndVideoAdd(gmvList, indexList, addVideoList, videoList, groupList);
+
             PageVO pageVO = new PageVO();
             pageVO.setList(gmvList);
+            pageVO.setTotal(total);
             pageQueryVo.setPageVO(pageVO);
         } catch (Exception e) {
             log.error("QUERY GMV DATA ERROR:{}", e.getMessage());

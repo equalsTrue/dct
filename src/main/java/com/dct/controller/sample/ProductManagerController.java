@@ -68,6 +68,11 @@ public class ProductManagerController {
         return ResponseInfoUtil.success(productService.fetchList(params));
     }
 
+    @PostMapping("/export")
+    public ResponseInfoVO fetchExportList(@RequestBody JSONObject params){
+        return ResponseInfoUtil.success(productService.fetchExportList(params));
+    }
+
     @PostMapping("/outboundList")
     public ResponseInfoVO fetchOutboundList(@RequestBody JSONObject params){
         return ResponseInfoUtil.success(productService.fetchOutboundList(params));
